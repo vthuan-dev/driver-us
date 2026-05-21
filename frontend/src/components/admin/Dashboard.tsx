@@ -43,7 +43,6 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
   const [requestStatusFilter, setRequestStatusFilter] = useState<'all' | 'waiting' | 'matched' | 'completed'>('waiting');
   const [userStatusFilter, setUserStatusFilter] = useState<'pending' | 'approved' | 'rejected'>('approved');
   const [bankConfig, setBankConfig] = useState<{ bankCode: string; bankName: string; accountNo: string; accountName: string; paypalMe: string }>({ bankCode: '', bankName: '', accountNo: '', accountName: '', paypalMe: '' });
-  const [banksList, setBanksList] = useState<{ id: string; name: string; shortName: string; code: string }[]>([]);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState('');
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -71,22 +70,16 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
   const loadSettings = async () => {
     try {
-      const [settingsRes, banksRes] = await Promise.all([
-        settingsAPI.getSettings(),
-        fetch('https://api.vietqr.io/v2/banks').then(r => r.json())
-      ]);
+      const settingsRes = await settingsAPI.getSettings();
       const s = settingsRes.data.data;
       if (s) {
         setBankConfig({
-          bankCode: s.bankCode || '',
-          bankName: s.bankName || '',
-          accountNo: s.accountNo || '',
-          accountName: s.accountName || '',
+          bankCode: '',
+          bankName: '',
+          accountNo: '',
+          accountName: '',
           paypalMe: s.paypalMe || ''
         });
-      }
-      if (banksRes.code === '00') {
-        setBanksList(banksRes.data);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -594,75 +587,30 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
           {activeTab === 'settings' && (
             <div className="settings-section">
-              <h2>⚙️ Cấu hình ngân hàng VietQR</h2>
-              <p style={{ color: '#666', marginBottom: 20 }}>Thay đổi STK ngân hàng dùng cho toàn bộ QR thanh toán (đăng ký, mua app, hoàn tiền).</p>
+              <h2>⚙️ PayPal Configuration</h2>
+              <p style={{ color: '#666', marginBottom: 20 }}>Set your PayPal.me username. All payment QR codes (registration, app purchase, withdrawal) will update automatically.</p>
 
               {settingsMessage && (
-                <div style={{ padding: '10px 16px', borderRadius: 8, marginBottom: 16, background: settingsMessage.includes('thành công') ? '#d4edda' : '#f8d7da', color: settingsMessage.includes('thành công') ? '#155724' : '#721c24' }}>
+                <div style={{ padding: '10px 16px', borderRadius: 8, marginBottom: 16, background: settingsMessage.includes('✅') ? '#d4edda' : '#f8d7da', color: settingsMessage.includes('✅') ? '#155724' : '#721c24' }}>
                   {settingsMessage}
                 </div>
               )}
 
               <div className="settings-form" style={{ maxWidth: 480 }}>
                 <label className="field" style={{ display: 'block', marginBottom: 16 }}>
-                  <span style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Ngân hàng</span>
-                  <select
-                    value={bankConfig.bankCode}
-                    onChange={(e) => {
-                      const code = e.target.value;
-                      const bank = banksList.find(b => b.code === code);
-                      setBankConfig(prev => ({ ...prev, bankCode: code, bankName: bank?.shortName || bank?.name || '' }));
-                    }}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 15 }}
-                  >
-                    <option value="">-- Chọn ngân hàng --</option>
-                    {banksList.map(bank => (
-                      <option key={bank.id} value={bank.code}>
-                        {bank.shortName || bank.name} ({bank.code})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="field" style={{ display: 'block', marginBottom: 16 }}>
-                  <span style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Số tài khoản</span>
-                  <input
-                    type="text"
-                    value={bankConfig.accountNo}
-                    onChange={(e) => setBankConfig(prev => ({ ...prev, accountNo: e.target.value.replace(/\D/g, '') }))}
-                    placeholder="VD: 092480168"
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 15 }}
-                  />
-                </label>
-
-                <label className="field" style={{ display: 'block', marginBottom: 16 }}>
-                  <span style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Tên chủ tài khoản <small style={{ color: '#888' }}>(IN HOA, không dấu)</small></span>
-                  <input
-                    type="text"
-                    value={bankConfig.accountName}
-                    onChange={(e) => {
-                      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9\s]/g, '');
-                      setBankConfig(prev => ({ ...prev, accountName: val }));
-                    }}
-                    placeholder="VD: HOANG MANH DUY"
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 15 }}
-                  />
-                </label>
-
-                <label className="field" style={{ display: 'block', marginBottom: 16 }}>
-                  <span style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>PayPal.me Username <small style={{ color: '#888' }}>(phần sau paypal.me/)</small></span>
+                  <span style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>PayPal.me Username <small style={{ color: '#888' }}>(part after paypal.me/)</small></span>
                   <input
                     type="text"
                     value={bankConfig.paypalMe}
                     onChange={(e) => setBankConfig(prev => ({ ...prev, paypalMe: e.target.value.trim() }))}
-                    placeholder="VD: johndriverapp"
+                    placeholder="e.g. johndriverapp"
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 15 }}
                   />
                 </label>
 
                 {bankConfig.paypalMe && (
                   <div style={{ marginBottom: 20, textAlign: 'center' }}>
-                    <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>Xem trước QR PayPal ($10):</p>
+                    <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>QR Preview (PayPal $10):</p>
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${bankConfig.paypalMe}/10`)}&bgcolor=ffffff&color=003087&margin=10`}
                       alt="PayPal QR Preview"
@@ -675,32 +623,26 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                 <button
                   className="submit"
                   onClick={async () => {
-                    if (!bankConfig.bankCode || !bankConfig.accountNo || !bankConfig.accountName) {
-                      setSettingsMessage('Vui lòng nhập đầy đủ thông tin!');
+                    if (!bankConfig.paypalMe) {
+                      setSettingsMessage('Please enter your PayPal.me username!');
                       setTimeout(() => setSettingsMessage(''), 3000);
                       return;
                     }
                     setSettingsLoading(true);
                     try {
-                      await settingsAPI.updateSettings({
-                        bankCode: bankConfig.bankCode,
-                        bankName: bankConfig.bankName,
-                        accountNo: bankConfig.accountNo,
-                        accountName: bankConfig.accountName,
-                        paypalMe: bankConfig.paypalMe
-                      });
-                      setSettingsMessage('✅ Cập nhật thành công!');
+                      await settingsAPI.updateSettings({ paypalMe: bankConfig.paypalMe });
+                      setSettingsMessage('✅ Saved successfully!');
                       setTimeout(() => setSettingsMessage(''), 3000);
                     } catch (err: any) {
-                      setSettingsMessage('❌ Lỗi: ' + (err.response?.data?.message || 'Không thể cập nhật'));
+                      setSettingsMessage('❌ Error: ' + (err.response?.data?.message || 'Failed to update'));
                     } finally {
                       setSettingsLoading(false);
                     }
                   }}
                   disabled={settingsLoading}
-                  style={{ width: '100%', padding: '12px', borderRadius: 8, background: '#4f46e5', color: '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: settingsLoading ? 'not-allowed' : 'pointer', opacity: settingsLoading ? 0.7 : 1 }}
+                  style={{ width: '100%', padding: '12px', borderRadius: 8, background: '#0070ba', color: '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: settingsLoading ? 'not-allowed' : 'pointer', opacity: settingsLoading ? 0.7 : 1 }}
                 >
-                  {settingsLoading ? 'Đang lưu...' : '💾 Lưu cấu hình'}
+                  {settingsLoading ? 'Saving...' : '💾 Save Configuration'}
                 </button>
               </div>
 
