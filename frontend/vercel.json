@@ -10,6 +10,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://180-93-35-55.sslip.io/us-api"
+    "VITE_API_URL": "https://us.180-93-35-55.sslip.io/api"
   }
 }
