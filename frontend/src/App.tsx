@@ -683,8 +683,8 @@ function MainApp() {
   }, []);
 
   const [showModal, setShowModal] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [showError, setShowError] = useState(false)
+  const [_showSuccess, setShowSuccess] = useState(false)
+  const [_showError, setShowError] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [authModal, setAuthModal] = useState<'login' | 'register' | null>(null)
   const [user, setUser] = useState<User | null>(() => {
@@ -836,7 +836,7 @@ function MainApp() {
   const [dragCurrentY, setDragCurrentY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [requests, setRequests] = useState<Array<{ _id: string; name: string; phone: string; startPoint: string; endPoint: string; price: number; createdAt: string; note?: string; region?: Region }>>([])
-  const [callSheet, setCallSheet] = useState<{ phone: string } | null>(null)
+  const [_callSheet, setCallSheet] = useState<{ phone: string } | null>(null)
   const [pendingAction, setPendingAction] = useState<null | { type: 'wait' } | { type: 'call', phone: string }>(null)
   const [activeRequestRegion, setActiveRequestRegion] = useState<Region>('north')
   const [selectedProvince, setSelectedProvince] = useState<Record<Region, string>>({
