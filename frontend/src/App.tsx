@@ -1170,7 +1170,7 @@ function MainApp() {
 
       {/* Hero Banner - shown when not logged in */}
       {!user && (
-        <div className="hero-banner">
+        <div className="hero-banner" style={{ backgroundImage: "url('/images/banner.png')" }}>
           <div className="hero-banner__content">
             <h3 className="hero-banner__title">Join the Driver Network</h3>
             <p className="hero-banner__subtitle">Sign up to contact drivers and post ride requests</p>
