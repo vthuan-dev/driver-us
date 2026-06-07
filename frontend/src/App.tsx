@@ -1148,34 +1148,38 @@ function MainApp() {
       {/* Show main app (hide when dashboard is open) */}
       {!showDriverDashboard && (
         <>
-      {!user && (
-        <div className="topbar">
-          <button className="hamburger" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}> MENU</button>
-          {menuOpen && (
-            <div className="menu-popover">
-              {/* Menu chỉ hiển thị khi chưa đăng nhập */}
-            </div>
-          )}
+      <div className="app-header">
+        <button className="app-header__menu" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div className="app-header__logo">DRIVER <span>APP</span></div>
+        <button className="app-header__bell" aria-label="Notifications">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </button>
+      </div>
+
+      {menuOpen && (
+        <div className="menu-popover">
+          {/* Menu */}
         </div>
       )}
 
-      {/* Auth Box - Tách riêng khỏi menu */}
+      {/* Hero Banner - shown when not logged in */}
       {!user && (
-        <div className="auth-box">
-          <div className="auth-box__content">
-            <h3 className="auth-box__title">Join the Driver Network</h3>
-            <p className="auth-box__subtitle">Sign up to contact drivers and post ride requests</p>
-            <div className="auth-box__buttons">
-              <button
-                className="auth-box__btn auth-box__btn--primary"
-                onClick={() => setAuthModal('register')}
-              >
+        <div className="hero-banner">
+          <div className="hero-banner__content">
+            <h3 className="hero-banner__title">Join the Driver Network</h3>
+            <p className="hero-banner__subtitle">Sign up to contact drivers and post ride requests</p>
+            <div className="hero-banner__buttons">
+              <button className="hero-banner__btn hero-banner__btn--primary" onClick={() => setAuthModal('register')}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 Sign Up
               </button>
-              <button
-                className="auth-box__btn auth-box__btn--secondary"
-                onClick={() => setAuthModal('login')}
-              >
+              <button className="hero-banner__btn hero-banner__btn--secondary" onClick={() => setAuthModal('login')}>
                 Log In
               </button>
             </div>
@@ -1280,6 +1284,22 @@ function MainApp() {
           }}
         />
       )}
+
+      <div className="info-bar">
+        <div className="info-bar__item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00b14f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.72A2 2 0 012 .18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.06-1.06a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z"/>
+          </svg>
+          <span>Contact <strong>039 xxxx 932</strong></span>
+        </div>
+        <div className="info-bar__divider" />
+        <div className="info-bar__item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00b14f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span>{requests.length > 0 ? `${requests.length} drivers waiting: ${requests[0].startPoint} ⇌ ${requests[0].endPoint}` : 'Waiting for ride requests...'}</span>
+        </div>
+      </div>
 
       <header className="ticker">
         <div className="ticker__track">
