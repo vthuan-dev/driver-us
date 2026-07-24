@@ -6,6 +6,10 @@ type FormData = {
   region: 'north' | 'central' | 'south';
   startPoint: string;
   endPoint: string;
+  startArea: string;
+  endArea: string;
+  startDetail: string;
+  endDetail: string;
   displayTime: string;
   displayDate: string;
   carType: '4' | '7' | '16';
@@ -20,25 +24,22 @@ type Props = {
   onCancel: () => void;
 };
 
+// US states grouped by region (north=Northeast, central=South, south=West)
 const provincesByRegion: Record<string, string[]> = {
   north: [
-    'Hà Nội', 'Hải Phòng', 'Hải Dương', 'Hưng Yên', 'Thái Bình',
-    'Hà Nam', 'Nam Định', 'Ninh Bình', 'Vĩnh Phúc', 'Bắc Ninh',
-    'Quảng Ninh', 'Lạng Sơn', 'Cao Bằng', 'Bắc Kạn', 'Thái Nguyên',
-    'Tuyên Quang', 'Hà Giang', 'Lào Cai', 'Yên Bái', 'Lai Châu',
-    'Điện Biên', 'Sơn La', 'Hòa Bình', 'Phú Thọ', 'Bắc Giang'
+    'Connecticut', 'Delaware', 'Maine', 'Maryland', 'Massachusetts',
+    'New Hampshire', 'New Jersey', 'New York', 'Pennsylvania', 'Rhode Island',
+    'Vermont'
   ],
   central: [
-    'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Quảng Bình', 'Quảng Trị',
-    'Thừa Thiên - Huế', 'Đà Nẵng', 'Quảng Nam', 'Quảng Ngãi',
-    'Bình Định', 'Phú Yên', 'Khánh Hòa', 'Ninh Thuận', 'Bình Thuận',
-    'Kon Tum', 'Gia Lai', 'Đắk Lắk', 'Đắk Nông', 'Lâm Đồng'
+    'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky',
+    'Louisiana', 'Mississippi', 'North Carolina', 'Oklahoma', 'South Carolina',
+    'Tennessee', 'Texas', 'Virginia', 'West Virginia'
   ],
   south: [
-    'TP. Hồ Chí Minh', 'Bình Dương', 'Đồng Nai', 'Bà Rịa-Vũng Tàu',
-    'Tây Ninh', 'Bình Phước', 'Long An', 'Tiền Giang', 'Bến Tre',
-    'Trà Vinh', 'Vĩnh Long', 'Đồng Tháp', 'An Giang', 'Kiên Giang',
-    'Cần Thơ', 'Hậu Giang', 'Sóc Trăng', 'Bạc Liêu', 'Cà Mau'
+    'Alaska', 'Arizona', 'California', 'Colorado', 'Hawaii',
+    'Idaho', 'Montana', 'Nevada', 'New Mexico', 'Oregon',
+    'Utah', 'Washington', 'Wyoming'
   ]
 };
 
@@ -47,6 +48,10 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
     region: 'north',
     startPoint: '',
     endPoint: '',
+    startArea: '',
+    endArea: '',
+    startDetail: '',
+    endDetail: '',
     displayTime: '08:00',
     displayDate: '',
     carType: '7',
@@ -64,6 +69,10 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
         region: template.region,
         startPoint: template.startPoint,
         endPoint: template.endPoint,
+        startArea: template.startArea || '',
+        endArea: template.endArea || '',
+        startDetail: template.startDetail || '',
+        endDetail: template.endDetail || '',
         displayTime: template.displayTime,
         displayDate: template.displayDate || '',
         carType: template.carType,
@@ -78,19 +87,19 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.startPoint || formData.startPoint.length < 2) {
-      newErrors.startPoint = 'Điểm đi phải có ít nhất 2 ký tự';
+      newErrors.startPoint = 'Pickup point must be at least 2 characters';
     }
 
     if (!formData.endPoint || formData.endPoint.length < 2) {
-      newErrors.endPoint = 'Điểm đến phải có ít nhất 2 ký tự';
+      newErrors.endPoint = 'Destination must be at least 2 characters';
     }
 
     if (!formData.displayTime || !/^\d{2}:\d{2}$/.test(formData.displayTime)) {
-      newErrors.displayTime = 'Giờ hiển thị không hợp lệ (HH:MM)';
+      newErrors.displayTime = 'Invalid display time (HH:MM)';
     }
 
     if (!formData.price || formData.price <= 0) {
-      newErrors.price = 'Giá tiền phải lớn hơn 0';
+      newErrors.price = 'Price must be greater than 0';
     }
 
     setErrors(newErrors);
@@ -123,47 +132,47 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <h3>{template ? '✏️ Sửa thông báo' : '➕ Tạo thông báo mới'}</h3>
+      <h3>{template ? '✏️ Edit Notification' : '➕ Create New Notification'}</h3>
       
       <form onSubmit={handleSubmit}>
         <div className="form-row">
           <div className="form-group">
-            <label>Vùng miền *</label>
+            <label>Region *</label>
             <select
               value={formData.region}
               onChange={(e) => handleChange('region', e.target.value)}
               required
             >
-              <option value="north">Miền Bắc</option>
-              <option value="central">Miền Trung</option>
-              <option value="south">Miền Nam</option>
+              <option value="north">North</option>
+              <option value="central">Central</option>
+              <option value="south">South</option>
             </select>
           </div>
 
           <div className="form-group">
-            <label>Loại xe *</label>
+            <label>Car Type *</label>
             <select
               value={formData.carType}
               onChange={(e) => handleChange('carType', e.target.value)}
               required
             >
-              <option value="4">4 chỗ</option>
-              <option value="7">7 chỗ</option>
-              <option value="16">16 chỗ</option>
+              <option value="4">4 seats</option>
+              <option value="7">7 seats</option>
+              <option value="16">16 seats</option>
             </select>
           </div>
         </div>
 
         <div className="form-row">
           <div className="form-group">
-            <label>Điểm đi *</label>
+            <label>Pickup Point *</label>
             <select
               value={formData.startPoint}
               onChange={(e) => handleChange('startPoint', e.target.value)}
               disabled={!formData.region}
               required
             >
-              <option value="">-- Chọn điểm đi --</option>
+              <option value="">-- Select pickup point --</option>
               {formData.region && provincesByRegion[formData.region]?.map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -172,14 +181,14 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
           </div>
 
           <div className="form-group">
-            <label>Điểm đến *</label>
+            <label>Destination *</label>
             <select
               value={formData.endPoint}
               onChange={(e) => handleChange('endPoint', e.target.value)}
               disabled={!formData.region}
               required
             >
-              <option value="">-- Chọn điểm đến --</option>
+              <option value="">-- Select destination --</option>
               {formData.region && provincesByRegion[formData.region]?.map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -190,7 +199,51 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
 
         <div className="form-row">
           <div className="form-group">
-            <label>Giờ hiển thị *</label>
+            <label>Pickup detail name (optional)</label>
+            <input
+              type="text"
+              value={formData.startDetail}
+              onChange={(e) => handleChange('startDetail', e.target.value)}
+              placeholder="e.g. Downtown Springfield (Illinois)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Destination detail name (optional)</label>
+            <input
+              type="text"
+              value={formData.endDetail}
+              onChange={(e) => handleChange('endDetail', e.target.value)}
+              placeholder="e.g. Lake Tahoe resort town (California)"
+            />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Pickup area (optional)</label>
+            <input
+              type="text"
+              value={formData.startArea}
+              onChange={(e) => handleChange('startArea', e.target.value)}
+              placeholder="e.g. Downtown Springfield, Illinois"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Destination area (optional)</label>
+            <input
+              type="text"
+              value={formData.endArea}
+              onChange={(e) => handleChange('endArea', e.target.value)}
+              placeholder="e.g. Lake Tahoe, California"
+            />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Display Time *</label>
             <input
               type="time"
               value={formData.displayTime}
@@ -201,22 +254,22 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
           </div>
 
           <div className="form-group">
-            <label>Ngày hiển thị (tùy chọn)</label>
+            <label>Display Date (optional)</label>
             <input
               type="date"
               value={formData.displayDate}
               onChange={(e) => handleChange('displayDate', e.target.value)}
             />
-            <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', display: 'block' }}>Để trống nếu không muốn hiển thị ngày</span>
+            <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', display: 'block' }}>Leave blank if you don't want to show a date</span>
           </div>
 
           <div className="form-group">
-            <label>Giá tiền (VND) *</label>
+            <label>Price (USD) *</label>
             <input
               type="number"
               value={formData.price}
               onChange={(e) => handleChange('price', parseInt(e.target.value) || 0)}
-              placeholder="VD: 1200000"
+              placeholder="e.g. 120"
               min="0"
               required
             />
@@ -225,11 +278,11 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
         </div>
 
         <div className="form-group">
-          <label>📝 Ghi chú (tùy chọn)</label>
+          <label>📝 Note (optional)</label>
           <textarea
             value={formData.note}
             onChange={(e) => handleChange('note', e.target.value)}
-            placeholder="Nhập ghi chú hiển thị cho tài xế (VD: Liên hệ 0912345678, đón tại cổng chính...)"
+            placeholder="Enter a note shown to the driver (e.g. Call (555) 123-4567, pick up at the main gate...)"
             rows={3}
             style={{ resize: 'vertical', minHeight: '80px' }}
           />
@@ -242,16 +295,16 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
               checked={formData.isActive}
               onChange={(e) => handleChange('isActive', e.target.checked)}
             />
-            <span>Bật thông báo ngay</span>
+            <span>Enable notification immediately</span>
           </label>
         </div>
 
         <div className="form-actions">
           <button type="submit" className="btn-submit">
-            {template ? 'Cập nhật' : 'Tạo mới'}
+            {template ? 'Update' : 'Create'}
           </button>
           <button type="button" className="btn-cancel" onClick={onCancel}>
-            Hủy
+            Cancel
           </button>
         </div>
       </form>

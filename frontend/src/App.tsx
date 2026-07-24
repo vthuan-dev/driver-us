@@ -3,7 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import './App.css'
-import { authAPI, driversAPI, requestsAPI, driverAPI, bankConfigAPI } from './services/api'
+import api, { authAPI, driversAPI, requestsAPI, driverAPI, bankConfigAPI } from './services/api'
 import AdminLogin from './components/admin/Login'
 import AdminDashboard from './components/admin/Dashboard'
 import DriverDashboard from './components/driver/DriverDashboard'
@@ -11,6 +11,7 @@ import FakeNotificationBanner from './components/driver/FakeNotificationBanner'
 import AppPricingModal from './components/driver/AppPricingModal'
 import DownloadAppPage from './components/driver/DownloadAppPage'
 import LoginWelcomeModal from './components/driver/LoginWelcomeModal'
+import DriverIncomePage from './components/driver/DriverIncomePage'
 import { Joyride, STATUS, EVENTS } from 'react-joyride'
 import type { Step } from 'react-joyride'
 
@@ -243,7 +244,7 @@ function AdminApp() {
     return (
       <div className="loading">
         <div className="loading-spinner"></div>
-        <p>Đang tải...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -269,7 +270,7 @@ function MainApp() {
       event.preventDefault(); // Prevent the default browser behavior
 
       // Show user-friendly error message
-      setErrorMessage('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
+      setErrorMessage('An unexpected error occurred. Please try again.');
       setShowError(true);
       setTimeout(() => setShowError(false), 5000);
     };
@@ -696,7 +697,48 @@ function MainApp() {
       return null;
     }
   })
-  
+
+  // ── Driver notifications (bell) ──
+  const [driverPostId, setDriverPostId] = useState<number | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notifList, setNotifList] = useState<any[]>([])
+  const [showNotifPanel, setShowNotifPanel] = useState(false)
+
+  useEffect(() => {
+    if (!user || user.status !== 'approved') return
+    const findPost = async () => {
+      try {
+        const res = await api.get('/drivers')
+        const list: any[] = res.data.drivers || res.data || []
+        const mine = list.find((p: any) => p.phone === user.phone)
+        if (mine) setDriverPostId(Number(mine.id ?? mine._id))
+      } catch {}
+    }
+    findPost()
+  }, [user])
+
+  useEffect(() => {
+    if (!driverPostId) return
+    const poll = async () => {
+      try {
+        const res = await api.get(`/requests/for-driver/${driverPostId}`)
+        setUnreadCount(res.data.unreadCount || 0)
+        setNotifList(res.data.requests || [])
+      } catch {}
+    }
+    poll()
+    const timer = setInterval(poll, 30000)
+    return () => clearInterval(timer)
+  }, [driverPostId])
+
+  const handleBellClick = async () => {
+    setShowNotifPanel(v => !v)
+    if (driverPostId && unreadCount > 0) {
+      try { await api.post(`/requests/for-driver/${driverPostId}/mark-read`) } catch {}
+      setUnreadCount(0)
+    }
+  }
+
   // State to control showing driver dashboard
   const [showDriverDashboard, setShowDriverDashboard] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -832,6 +874,7 @@ function MainApp() {
   })
   // Removed car image preview state
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuShowIncome, setMenuShowIncome] = useState(false)
   const [dragStartY, setDragStartY] = useState(0)
   const [dragCurrentY, setDragCurrentY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -1053,7 +1096,7 @@ function MainApp() {
 
     const parsedPrice = parseInt(form.price) || 0
     if (parsedPrice <= 0) {
-      alert('Giá phải lớn hơn 0đ')
+      alert('Price must be greater than 0')
       return
     }
 
@@ -1097,10 +1140,25 @@ function MainApp() {
       setForm({ name: '', phone: '', startPoint: '', endPoint: '', price: '', note: '', region: 'north' })
     } catch (error) {
       console.error('Error creating request:', error)
-      alert('Có lỗi xảy ra khi tạo yêu cầu')
+      alert('An error occurred while creating the request')
     } finally {
       setLoading(false)
     }
+  }
+
+  // ── Shared drawer menu item styles ────────────────────────────
+  const menuItemStyle: React.CSSProperties = {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+    padding: '14px 16px', borderRadius: 14, border: 'none',
+    background: '#f9fafb', cursor: 'pointer', fontSize: 15,
+    fontWeight: 600, color: '#1f2937', marginBottom: 8,
+    textAlign: 'left', transition: 'background 0.15s',
+  }
+  const menuIconStyle: React.CSSProperties = {
+    fontSize: 20, width: 28, textAlign: 'center', flexShrink: 0
+  }
+  const menuArrowStyle: React.CSSProperties = {
+    marginLeft: 'auto', fontSize: 22, color: '#9ca3af', lineHeight: 1
   }
 
   return (
@@ -1155,22 +1213,223 @@ function MainApp() {
           </svg>
         </button>
         <div className="app-header__logo">DRIVER <span>APP</span></div>
-        <button className="app-header__bell" aria-label="Notifications">
+        <button className="app-header__bell" aria-label="Notifications" onClick={handleBellClick} style={{ position: 'relative' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
+          {unreadCount > 0 && (
+            <span style={{
+              position: 'absolute', top: 4, right: 4,
+              background: '#ef4444', color: '#fff',
+              fontSize: 10, fontWeight: 800,
+              minWidth: 16, height: 16, borderRadius: 999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 3px', pointerEvents: 'none',
+              border: '1.5px solid #fff'
+            }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+          )}
         </button>
       </div>
 
-      {menuOpen && (
-        <div className="menu-popover">
-          {/* Menu */}
+      {/* Notification dropdown — small popover near bell */}
+      {showNotifPanel && (
+        <>
+          <div onClick={() => setShowNotifPanel(false)} style={{ position: 'fixed', inset: 0, zIndex: 198 }} />
+          <div style={{
+            position: 'fixed', top: 52, right: 8, zIndex: 199,
+            background: '#fff', borderRadius: 14,
+            width: 'min(300px, calc(100vw - 16px))',
+            maxHeight: 360, display: 'flex', flexDirection: 'column',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            border: '1px solid #f0f0f0',
+          }}>
+            <div style={{ padding: '10px 14px 8px', fontWeight: 700, fontSize: 13, color: '#111827', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>🔔 Ride requests {unreadCount > 0 && <span style={{ background: '#00b14f', color: '#fff', borderRadius: 99, fontSize: 10, padding: '1px 6px', marginLeft: 4 }}>{unreadCount} new</span>}</span>
+              <button onClick={() => setShowNotifPanel(false)} style={{ border: 0, background: 'none', fontSize: 16, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {(!user || user.status !== 'approved') ? (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#9ca3af' }}>
+                  <div style={{ fontSize: 28, marginBottom: 6 }}>🔒</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Sign in to view</div>
+                </div>
+              ) : notifList.length === 0 ? (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#9ca3af' }}>
+                  <div style={{ fontSize: 28, marginBottom: 6 }}>📭</div>
+                  <div style={{ fontSize: 13 }}>No requests yet</div>
+                </div>
+              ) : notifList.map((r: any) => (
+                <div key={r._id} style={{
+                  padding: '10px 14px', borderBottom: '1px solid #f9fafb',
+                  background: r.isReadByDriver ? '#fff' : '#f0fdf4',
+                  position: 'relative',
+                }}>
+                  {!r.isReadByDriver && <span style={{ position: 'absolute', top: 12, right: 12, width: 7, height: 7, borderRadius: 999, background: '#22c55e', display: 'block' }} />}
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', paddingRight: 16 }}>{r.startPoint} → {r.endPoint}</div>
+                  <div style={{ fontSize: 12, color: '#374151', marginTop: 2 }}>👤 {r.name} · {r.phone}</div>
+                  <div style={{ fontSize: 13, color: '#00b14f', fontWeight: 700, marginTop: 2 }}>${Number(r.price).toLocaleString('en-US')}</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{new Date(r.createdAt).toLocaleString('en-US')}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Income page (full-screen, opened from menu) ── */}
+      {menuShowIncome && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 3000,
+          background: '#f5f5f5',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+        }}>
+          <DriverIncomePage onBack={() => { setMenuShowIncome(false); setMenuOpen(false); }} />
         </div>
       )}
 
-      {/* Hero Banner - shown when not logged in */}
+      {/* ── Hamburger drawer ── */}
+      {menuOpen && (
+        <AnimatePresence>
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="menu-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 2000,
+                background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)'
+              }}
+            />
+            {/* Drawer panel */}
+            <motion.div
+              key="menu-drawer"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              style={{
+                position: 'fixed', top: 0, left: 0, bottom: 0,
+                width: 280, zIndex: 2001,
+                background: '#fff',
+                boxShadow: '4px 0 32px rgba(0,0,0,0.18)',
+                display: 'flex', flexDirection: 'column',
+                overflowY: 'auto'
+              }}
+            >
+              {/* Drawer header */}
+              <div style={{
+                background: 'linear-gradient(135deg,#1a2340 0%,#243252 100%)',
+                padding: '28px 20px 22px',
+                position: 'relative'
+              }}>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  aria-label="Close menu"
+                  style={{
+                    position: 'absolute', top: 14, right: 14,
+                    width: 32, height: 32, borderRadius: '50%',
+                    border: 'none', background: 'rgba(255,255,255,0.15)',
+                    color: '#fff', fontSize: 20, lineHeight: 1,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >×</button>
+                {user ? (
+                  <>
+                    <div style={{
+                      width: 52, height: 52, borderRadius: '50%',
+                      background: 'linear-gradient(135deg,#00b14f,#009140)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 22, fontWeight: 800, color: '#fff',
+                      marginBottom: 12, boxShadow: '0 4px 14px rgba(0,177,79,0.4)'
+                    }}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 2 }}>{user.name}</div>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{user.phone}</div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>DRIVER APP</div>
+                )}
+              </div>
+
+              {/* Menu items */}
+              <div style={{ flex: 1, padding: '12px 12px' }}>
+                {user?.status === 'approved' && (
+                  <>
+                    <button
+                      onClick={() => { setMenuOpen(false); setShowDriverDashboard(true); }}
+                      style={menuItemStyle}
+                    >
+                      <span style={menuIconStyle}>🏠</span>
+                      <span>Driver Dashboard</span>
+                      <span style={menuArrowStyle}>›</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setMenuShowIncome(true); }}
+                      style={{ ...menuItemStyle, background: 'linear-gradient(135deg,#e8f5e9,#f1f8e9)' }}
+                    >
+                      <span style={menuIconStyle}>💵</span>
+                      <span style={{ fontWeight: 700, color: '#1a2340' }}>Driver Earnings</span>
+                      <span style={{ ...menuArrowStyle, color: '#00b14f' }}>›</span>
+                    </button>
+                  </>
+                )}
+
+                {!user && (
+                  <>
+                    <button onClick={() => { setMenuOpen(false); setAuthModal('login'); }} style={menuItemStyle}>
+                      <span style={menuIconStyle}>🔑</span>
+                      <span>Log In</span>
+                      <span style={menuArrowStyle}>›</span>
+                    </button>
+                    <button onClick={() => { setMenuOpen(false); setAuthModal('register'); }} style={menuItemStyle}>
+                      <span style={menuIconStyle}>📝</span>
+                      <span>Sign Up</span>
+                      <span style={menuArrowStyle}>›</span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Logout at bottom */}
+              {user && (
+                <div style={{ padding: '12px 12px 24px' }}>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      localStorage.removeItem('token');
+                      localStorage.removeItem('driver_user');
+                      localStorage.removeItem('driver_registered');
+                      setUser(null);
+                      setShowDriverDashboard(false);
+                    }}
+                    style={{
+                      ...menuItemStyle,
+                      background: '#fef2f2',
+                      color: '#ef4444',
+                      border: '1.5px solid #fecaca'
+                    }}
+                  >
+                    <span style={menuIconStyle}>🚪</span>
+                    <span style={{ fontWeight: 700 }}>Log Out</span>
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        </AnimatePresence>
+      )}
+
+      {/* Hero Banner */}
       {!user && (
-        <div className="hero-banner" style={{ backgroundImage: "url('/images/banner.png')" }}>
+        <div className="hero-banner">
           <div className="hero-banner__content">
             <h3 className="hero-banner__title">Join the Driver Network</h3>
             <p className="hero-banner__subtitle">Sign up to contact drivers and post ride requests</p>
@@ -1286,41 +1545,26 @@ function MainApp() {
       )}
 
       <div className="info-bar">
-        <div className="info-bar__item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00b14f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="info-bar__item info-bar__item--phone">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00b14f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.72A2 2 0 012 .18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.06-1.06a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z"/>
           </svg>
-          <span>Contact <strong>039 xxxx 932</strong></span>
+          <span>Contact <strong>(800) 555-0132</strong></span>
         </div>
         <div className="info-bar__divider" />
-        <div className="info-bar__item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00b14f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span>{requests.length > 0 ? `${requests.length} drivers waiting: ${requests[0].startPoint} ⇌ ${requests[0].endPoint}` : 'Waiting for ride requests...'}</span>
+        {/* Scrolling ticker */}
+        <div className="info-bar__ticker-wrap">
+          <div className="info-bar__ticker">
+            {tickerDrivers.map((p) => (
+              <span key={`tk-${p._id}`} className="info-bar__ticker-item">🚗 {p.name} available · {p.route} · {formatPhone(p.phone)}</span>
+            ))}
+            {/* Duplicate for seamless loop */}
+            {tickerDrivers.map((p) => (
+              <span key={`tk-dup-${p._id}`} className="info-bar__ticker-item">🚗 {p.name} available · {p.route} · {formatPhone(p.phone)}</span>
+            ))}
+          </div>
         </div>
       </div>
-
-      <header className="ticker">
-        <div className="ticker__track">
-          {tickerDrivers.map((p) => (
-            <div className="ticker__item" key={`ticker-${p._id}`}>
-              <span className="dot" />
-              <span className="ticker__text">
-                {p.name} is available: {p.route} - Contact {formatPhone(p.phone)}
-              </span>
-            </div>
-          ))}
-          {tickerDrivers.map((p) => (
-            <div className="ticker__item" key={`ticker-dup-${p._id}`}>
-              <span className="dot" />
-              <span className="ticker__text">
-                {p.name} is available: {p.route} - Contact {formatPhone(p.phone)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </header>
 
       <main className="content">
         {/* Yêu cầu chở cuốc xe - Hiển thị luôn trên màn hình chính */}
@@ -1385,21 +1629,53 @@ function MainApp() {
           {regionRequests.length === 0 && (
             <div className="empty-state">No ride requests in {regionLabels[activeRequestRegion]} yet.</div>
           )}
-          {regionRequests.map((r) => (
-            <div className="request-card" key={r._id}>
-              <div className="request-main">
-                <div className="request-name">{r.name}</div>
-                <div className="request-phone">Customer phone: {formatPhone(r.phone)}</div>
-                <div className="request-route">{r.startPoint} -&gt; {r.endPoint}</div>
-                {r.note && <div className="request-note">Note: {r.note}</div>}
-                <div className="request-price">Price: ${r.price?.toLocaleString('en-US')}</div>
+          {regionRequests.map((r) => {
+            const isNew = (Date.now() - new Date(r.createdAt).getTime()) < 30 * 60 * 1000;
+            return (
+              <div className="request-card" key={r._id}>
+                <div className="request-card__top">
+                  <span className={`request-badge ${isNew ? 'request-badge--new' : 'request-badge--dim'}`}>
+                    ⚡ New
+                  </span>
+                  <span className="request-card__name">{r.name}</span>
+                  <span className={`request-badge ${!isNew ? 'request-badge--done' : 'request-badge--dim'}`}>
+                    🕐 Just now
+                  </span>
+                </div>
+                <div className="request-card__phone">Customer phone: {formatPhone(r.phone)}</div>
+                <div className="request-card__route">
+                  <div className="request-card__route-row">
+                    <span className="route-dot route-dot--green" />
+                    <span>{r.startPoint}</span>
+                  </div>
+                  <div className="route-line" />
+                  <div className="request-card__route-row">
+                    <span className="route-dot route-dot--red" />
+                    <span>{r.endPoint}</span>
+                  </div>
+                </div>
+                {r.note && <div className="request-card__note">Note: {r.note}</div>}
+                <div className="request-card__price">
+                  <span className="request-card__price-label">Price: </span>
+                  <span className="request-card__price-value">${r.price?.toLocaleString('en-US')}</span>
+                </div>
+                <button className="call-driver-btn" onClick={() => {
+                  if (!user) {
+                    setErrorPopupTitle('Sign Up Required');
+                    setErrorMessage('Please sign up or log in to accept ride requests.');
+                    setShowErrorPopup(true);
+                    return;
+                  }
+                  setCallSheet({ phone: r.phone });
+                }}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff">
+                    <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.56.57 1 1 0 011 1V21a1 1 0 01-1 1A18 18 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.56 1 1 0 01-.24 1.01l-2.21 2.22z" />
+                  </svg>
+                  CALL DRIVER NOW
+                </button>
               </div>
-              <button className="copy-btn" onClick={() => {
-                const text = `${r.name}\n${r.phone}\n${r.startPoint} -> ${r.endPoint}\nPrice: $${r.price?.toLocaleString('en-US')}`
-                navigator.clipboard.writeText(text)
-              }}>CALL DRIVER NOW</button>
-            </div>
-          ))}
+            );
+          })}
         </section>
 
         {/* Danh sách tài xế */}

@@ -47,22 +47,22 @@ const FakeNotificationSettings = () => {
     setMessage(null);
     try {
       await settingsAPI.updateSettings(settings);
-      setMessage({ text: 'Lưu cài đặt thành công!', type: 'success' });
+      setMessage({ text: 'Settings saved successfully!', type: 'success' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       console.error('Error saving settings:', error);
-      setMessage({ text: error.response?.data?.message || 'Lỗi khi lưu cài đặt', type: 'error' });
+      setMessage({ text: error.response?.data?.message || 'Failed to save settings', type: 'error' });
       setTimeout(() => setMessage(null), 5000);
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div>Đang tải cài đặt...</div>;
+  if (loading) return <div>Loading settings...</div>;
 
   return (
     <div className="settings-card" style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '12px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-      <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>⚙️ Cài đặt hiển thị random</h3>
+      <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>⚙️ Random Display Settings</h3>
       
       {message && (
         <div style={{ padding: '10px', borderRadius: '8px', marginBottom: '15px', backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24' }}>
@@ -72,7 +72,7 @@ const FakeNotificationSettings = () => {
 
       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '250px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px', color: '#555' }}>Số thông báo/khung giờ:</label>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px', color: '#555' }}>Notifications per time slot:</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ flex: 1 }}>
               <span style={{ fontSize: '12px', color: '#777' }}>Min</span>
@@ -99,7 +99,7 @@ const FakeNotificationSettings = () => {
         </div>
 
         <div style={{ flex: 1, minWidth: '250px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px', color: '#555' }}>Khoảng thời gian random (phút):</label>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', fontSize: '14px', color: '#555' }}>Random interval (minutes):</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ flex: 1 }}>
               <span style={{ fontSize: '12px', color: '#777' }}>Min</span>
@@ -132,7 +132,7 @@ const FakeNotificationSettings = () => {
           disabled={saving}
           style={{ backgroundColor: '#00B14F', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
         >
-          {saving ? 'Đang lưu...' : '💾 Lưu cài đặt'}
+          {saving ? 'Saving...' : '💾 Save Settings'}
         </button>
       </div>
     </div>

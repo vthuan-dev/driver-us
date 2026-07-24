@@ -2,13 +2,14 @@ const { WaitingRequest, User } = require('../models');
 
 const createRequest = async (req, res) => {
   try {
-    const { name, phone, startPoint, endPoint, price, note, region } = req.body;
+    const { name, phone, startPoint, endPoint, price, note, region, driverPostId } = req.body;
     const userId = req.user ? req.user.id : null;
     
     console.log('Creating request with data:', { name, phone, startPoint, endPoint, price, note, region, userId });
     
     const request = await WaitingRequest.create({
       userId,
+      driverPostId: driverPostId ? parseInt(driverPostId) : null,
       name,
       phone,
       startPoint,
@@ -57,12 +58,49 @@ const getMyRequests = async (req, res) => {
 
 const getAllRequests = async (req, res) => {
   try {
-    const { status, limit } = req.query;
+    const { status, limit, region, province, keyword, from, to } = req.query;
+    const { Op } = require('sequelize');
 
     const filter = {};
     if (status && ['waiting', 'matched', 'completed'].includes(String(status))) {
       filter.status = status;
     }
+    if (region && ['north', 'central', 'south'].includes(String(region))) {
+      filter.region = region;
+    }
+
+    const andClauses = [];
+    if (from && String(from).trim()) {
+      const f = String(from).trim();
+      andClauses.push({
+        startPoint: { [Op.like]: `%${f}%` }
+      });
+    }
+    if (to && String(to).trim()) {
+      const t = String(to).trim();
+      andClauses.push({
+        endPoint: { [Op.like]: `%${t}%` }
+      });
+    }
+    if (!from && !to && province && String(province).trim()) {
+      const p = String(province).trim();
+      andClauses.push({
+        [Op.or]: [
+          { startPoint: { [Op.like]: `%${p}%` } },
+          { endPoint:   { [Op.like]: `%${p}%` } }
+        ]
+      });
+    }
+    if (keyword && String(keyword).trim()) {
+      const kw = String(keyword).trim();
+      andClauses.push({
+        [Op.or]: [
+          { name:  { [Op.like]: `%${kw}%` } },
+          { phone: { [Op.like]: `%${kw}%` } }
+        ]
+      });
+    }
+    if (andClauses.length > 0) filter[Op.and] = andClauses;
 
     const queryOptions = {
       where: filter,
@@ -74,7 +112,7 @@ const getAllRequests = async (req, res) => {
       order: [['createdAt', 'DESC']]
     };
 
-    const max = Math.min(parseInt(limit || '0', 10) || 0, 100);
+    const max = Math.min(parseInt(limit || '0', 10) || 0, 500);
     if (max > 0) {
       queryOptions.limit = max;
     }
@@ -150,10 +188,40 @@ const deleteRequest = async (req, res) => {
   }
 };
 
+const getForDriver = async (req, res) => {
+  try {
+    const { driverPostId } = req.params;
+    const requests = await WaitingRequest.findAll({
+      where: { driverPostId: parseInt(driverPostId) },
+      order: [['createdAt', 'DESC']]
+    });
+    const unreadCount = requests.filter(r => !r.isReadByDriver).length;
+    res.json({ requests: requests.map(r => { const d = r.toJSON(); d._id = d.id; return d; }), unreadCount });
+  } catch (error) {
+    console.error('Get for driver error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const markReadByDriver = async (req, res) => {
+  try {
+    const { driverPostId } = req.params;
+    await WaitingRequest.update(
+      { isReadByDriver: true },
+      { where: { driverPostId: parseInt(driverPostId), isReadByDriver: false } }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   createRequest,
   getMyRequests,
   getAllRequests,
   updateRequest,
-  deleteRequest
+  deleteRequest,
+  getForDriver,
+  markReadByDriver
 };

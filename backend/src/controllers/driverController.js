@@ -1,11 +1,32 @@
-const { DriverPost } = require('../models');
+const { DriverPost, WaitingRequest, Sequelize } = require('../models');
+const { Op } = Sequelize;
 
 const getDrivers = async (req, res) => {
   try {
-    const { region } = req.query;
+    const { region, keyword, from, to } = req.query;
     const filter = { isActive: true };
+
     if (region && ['north', 'central', 'south'].includes(region)) {
       filter.region = region;
+    }
+
+    const andClauses = [];
+    if (from && from.trim()) {
+      andClauses.push({ route: { [Op.like]: `%${from.trim()}%` } });
+    }
+    if (to && to.trim()) {
+      andClauses.push({ route: { [Op.like]: `%${to.trim()}%` } });
+    }
+    if (keyword && keyword.trim()) {
+      andClauses.push({
+        [Op.or]: [
+          { route: { [Op.like]: `%${keyword.trim()}%` } },
+          { name:  { [Op.like]: `%${keyword.trim()}%` } }
+        ]
+      });
+    }
+    if (andClauses.length > 0) {
+      filter[Op.and] = andClauses;
     }
 
     const totalDrivers = await DriverPost.count();
@@ -15,10 +36,36 @@ const getDrivers = async (req, res) => {
       where: filter,
       order: [['createdAt', 'DESC']]
     });
-    
+
+    // Enrich with latest WaitingRequest price/note by matching phone
+    const phones = allDrivers.map(d => d.phone).filter(Boolean);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const latestRequests = phones.length > 0
+      ? await WaitingRequest.findAll({
+          where: {
+            phone: { [Op.in]: phones },
+            status: 'waiting',
+            createdAt: { [Op.gte]: thirtyDaysAgo }
+          },
+          attributes: ['phone', 'price', 'note', 'startPoint', 'endPoint', 'createdAt'],
+          order: [['createdAt', 'DESC']]
+        })
+      : [];
+
+    // Map phone → latest request
+    const phoneToRequest = {};
+    for (const r of latestRequests) {
+      if (!phoneToRequest[r.phone]) phoneToRequest[r.phone] = r;
+    }
+
     const drivers = allDrivers.map(d => {
       const data = d.toJSON();
-      data._id = data.id; // For frontend compatibility
+      data._id = data.id;
+      const req = phoneToRequest[d.phone];
+      if (req) {
+        if (!data.price) data.price = Number(req.price);
+        if (!data.note)  data.note  = req.note;
+      }
       return data;
     });
     
@@ -39,14 +86,16 @@ const getDrivers = async (req, res) => {
 
 const createDriver = async (req, res) => {
   try {
-    const { name, phone, route, avatar, region } = req.body;
+    const { name, phone, route, avatar, region, price, note } = req.body;
     
     const driver = await DriverPost.create({
       name,
       phone,
       route,
       avatar: avatar || '',
-      region: ['north', 'central', 'south'].includes(region) ? region : 'north'
+      region: ['north', 'central', 'south'].includes(region) ? region : 'north',
+      price: price ? parseInt(price) : null,
+      note: note || null
     });
     
     const data = driver.toJSON();
@@ -109,8 +158,79 @@ const deleteDriver = async (req, res) => {
   }
 };
 
+const searchDrivers = async (req, res) => {
+  try {
+    const { from, to, q } = req.query;
+    const keyword = q || '';
+    const filter = { isActive: true };
+
+    const andClauses = [];
+    if (from && from.trim()) {
+      andClauses.push({ route: { [Op.like]: `%${from.trim()}%` } });
+    }
+    if (to && to.trim()) {
+      andClauses.push({ route: { [Op.like]: `%${to.trim()}%` } });
+    }
+    if (keyword.trim()) {
+      andClauses.push({
+        [Op.or]: [
+          { route: { [Op.like]: `%${keyword.trim()}%` } },
+          { name:  { [Op.like]: `%${keyword.trim()}%` } }
+        ]
+      });
+    }
+    if (andClauses.length > 0) filter[Op.and] = andClauses;
+
+    const allDrivers = await DriverPost.findAll({
+      where: filter,
+      order: [['createdAt', 'DESC']]
+    });
+
+    const phones = allDrivers.map(d => d.phone).filter(Boolean);
+    const names  = allDrivers.map(d => d.name).filter(Boolean);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const latestRequests = (phones.length > 0 || names.length > 0)
+      ? await WaitingRequest.findAll({
+          where: {
+            createdAt: { [Op.gte]: thirtyDaysAgo },
+            [Op.or]: [
+              ...(phones.length ? [{ phone: { [Op.in]: phones } }] : []),
+              ...(names.length  ? [{ name:  { [Op.in]: names  } }] : [])
+            ]
+          },
+          attributes: ['phone', 'name', 'price', 'note', 'startPoint', 'endPoint', 'createdAt'],
+          order: [['createdAt', 'DESC']]
+        })
+      : [];
+
+    const phoneToReq = {};
+    const nameToReq  = {};
+    for (const r of latestRequests) {
+      if (r.phone && !phoneToReq[r.phone]) phoneToReq[r.phone] = r;
+      if (r.name  && !nameToReq[r.name])   nameToReq[r.name]   = r;
+    }
+
+    const drivers = allDrivers.map(d => {
+      const data = d.toJSON();
+      data._id = data.id;
+      const req = phoneToReq[d.phone] || nameToReq[d.name];
+      if (req) {
+        if (!data.price) data.price = Number(req.price);
+        if (!data.note)  data.note  = req.note;
+      }
+      return data;
+    });
+
+    res.json({ drivers, total: drivers.length });
+  } catch (error) {
+    console.error('Search drivers error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getDrivers,
+  searchDrivers,
   createDriver,
   updateDriver,
   deleteDriver

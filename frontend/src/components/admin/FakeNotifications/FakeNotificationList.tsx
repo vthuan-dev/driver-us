@@ -9,9 +9,9 @@ type Props = {
 };
 
 const regionLabels = {
-  north: 'Miền Bắc',
-  central: 'Miền Trung',
-  south: 'Miền Nam'
+  north: 'Northeast',
+  central: 'South',
+  south: 'West'
 };
 
 const FakeNotificationList = ({ templates, onEdit, onDelete, onToggle }: Props) => {
@@ -26,8 +26,8 @@ const FakeNotificationList = ({ templates, onEdit, onDelete, onToggle }: Props) 
     return (
       <div className="empty-state">
         <div className="empty-icon">📢</div>
-        <h3>Chưa có thông báo ảo nào</h3>
-        <p>Nhấn "Tạo thông báo mới" để bắt đầu</p>
+        <h3>No fake notifications yet</h3>
+        <p>Click "Create New Notification" to get started</p>
       </div>
     );
   }
@@ -42,7 +42,7 @@ const FakeNotificationList = ({ templates, onEdit, onDelete, onToggle }: Props) 
         return (
           <div key={region} className="region-section">
             <h3 className="region-title">
-              🗺️ {regionLabels[region]} ({regionTemplates.length} thông báo)
+              🗺️ {regionLabels[region]} ({regionTemplates.length} notifications)
             </h3>
             <div className="templates-grid">
               {regionTemplates.map(template => (

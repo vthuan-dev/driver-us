@@ -17,7 +17,7 @@ const FakeNotificationCard = ({ template, onEdit, onDelete, onToggle }: Props) =
       whileHover={{ y: -4 }}
     >
       <div className="card-header">
-        <span className="time">🕐 {template.displayTime}{template.displayDate ? ` ngày ${new Date(template.displayDate).toLocaleDateString('vi-VN')}` : ''}</span>
+        <span className="time">🕐 {template.displayTime}{template.displayDate ? ` on ${new Date(template.displayDate).toLocaleDateString('en-US')}` : ''}</span>
         <span className={`status-indicator ${template.isActive ? 'active' : 'inactive'}`}>
           {template.isActive ? '●' : '○'}
         </span>
@@ -31,8 +31,8 @@ const FakeNotificationCard = ({ template, onEdit, onDelete, onToggle }: Props) =
         </div>
         
         <div className="details">
-          <span className="car-type">🚗 {template.carType} chỗ</span>
-          <span className="price">{template.price.toLocaleString('vi-VN')}đ</span>
+          <span className="car-type">🚗 {template.carType} seats</span>
+          <span className="price">${template.price.toLocaleString('en-US')}</span>
         </div>
 
         {template.note && (
@@ -54,14 +54,14 @@ const FakeNotificationCard = ({ template, onEdit, onDelete, onToggle }: Props) =
         <button 
           className={`toggle-btn ${template.isActive ? 'active' : 'inactive'}`}
           onClick={onToggle}
-          title={template.isActive ? 'Tắt' : 'Bật'}
+          title={template.isActive ? 'Disable' : 'Enable'}
         >
-          {template.isActive ? '🟢 Bật' : '⚪ Tắt'}
+          {template.isActive ? '🟢 On' : '⚪ Off'}
         </button>
-        <button className="edit-btn" onClick={onEdit} title="Sửa">
+        <button className="edit-btn" onClick={onEdit} title="Edit">
           ✏️
         </button>
-        <button className="delete-btn" onClick={onDelete} title="Xóa">
+        <button className="delete-btn" onClick={onDelete} title="Delete">
           🗑️
         </button>
       </div>

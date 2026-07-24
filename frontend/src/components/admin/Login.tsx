@@ -19,7 +19,7 @@ const Login = ({ onLogin }: { onLogin: (admin: any) => void }) => {
       localStorage.setItem('admin_user', JSON.stringify(response.data.admin));
       onLogin(response.data.admin);
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Đăng nhập thất bại');
+      setError(error.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -35,28 +35,28 @@ const Login = ({ onLogin }: { onLogin: (admin: any) => void }) => {
       >
         <div className="login-header">
           <h1>Admin Panel</h1>
-          <p>Đăng nhập để quản lý hệ thống</p>
+          <p>Sign in to manage the system</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label>Tên đăng nhập</label>
+            <label>Username</label>
             <input
               type="text"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
-              placeholder="Nhập tên đăng nhập"
+              placeholder="Enter username"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Mật khẩu</label>
+            <label>Password</label>
             <input
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="Nhập mật khẩu"
+              placeholder="Enter password"
               required
             />
           </div>
@@ -70,7 +70,7 @@ const Login = ({ onLogin }: { onLogin: (admin: any) => void }) => {
             whileTap={{ scale: 0.98 }}
             whileHover={{ filter: 'brightness(1.05)' }}
           >
-            {loading ? 'ĐANG ĐĂNG NHẬP...' : 'ĐĂNG NHẬP'}
+            {loading ? 'SIGNING IN...' : 'SIGN IN'}
           </motion.button>
         </form>
 

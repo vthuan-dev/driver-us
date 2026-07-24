@@ -399,15 +399,18 @@ body {
 
 /* Desktop Layout */
 @media (min-width: 1024px) {
-  .dashboard-main {
-    grid-template-columns: 300px 1fr;
-    gap: 40px;
-  }
-  
   .dashboard-sidebar {
-    position: sticky;
-    top: 20px;
-    height: fit-content;
+    position: fixed;
+    top: 80px;
+    left: 0;
+    width: 280px;
+    height: calc(100vh - 80px);
+    transform: translateX(0); /* always visible on desktop */
+  }
+
+  .dashboard-main {
+    margin-left: 280px;
+    padding: 32px 36px;
   }
   
   .tabs {
@@ -422,6 +425,14 @@ body {
     text-align: left;
     padding: 15px 20px;
     border-radius: 12px;
+  }
+
+  .hamburger-menu {
+    display: none !important;
+  }
+
+  .mobile-navigation {
+    display: none !important;
   }
 }
 
@@ -888,7 +899,8 @@ body {
 
 .ban-btn,
 .unban-btn,
-.remove-btn {
+.remove-btn,
+.income-btn {
   padding: 10px 20px;
   border: none;
   border-radius: 12px;
@@ -932,9 +944,22 @@ body {
   box-shadow: 0 8px 24px rgba(249, 115, 22, 0.5);
 }
 
+/* Income button */
+.income-btn {
+  background: linear-gradient(135deg, #1a2340 0%, #243252 100%);
+  box-shadow: 0 4px 14px rgba(26, 35, 64, 0.35);
+  color: #fff !important;
+}
+
+.income-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 24px rgba(26, 35, 64, 0.45);
+}
+
 .ban-btn:disabled,
 .unban-btn:disabled,
-.remove-btn:disabled {
+.remove-btn:disabled,
+.income-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;

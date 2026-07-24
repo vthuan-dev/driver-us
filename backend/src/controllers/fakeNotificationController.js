@@ -5,14 +5,14 @@ const { FakeNotification, Admin } = require('../models');
 // @access  Private/Admin
 exports.createTemplate = async (req, res) => {
   try {
-    const { region, startPoint, endPoint, displayTime, displayDate, carType, price, isActive, note } = req.body;
+    const { region, startPoint, endPoint, startArea, endArea, startDetail, endDetail, displayTime, displayDate, carType, price, isActive, note } = req.body;
 
     // Get admin id - ensure it's an integer (not MongoDB ObjectId string)
     const adminId = parseInt(req.user.id) || parseInt(req.user._id);
     if (!adminId || isNaN(adminId)) {
       return res.status(401).json({
         success: false,
-        message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất và đăng nhập lại.'
+        message: 'Invalid session. Please log out and log in again.'
       });
     }
 
@@ -21,6 +21,10 @@ exports.createTemplate = async (req, res) => {
       region,
       startPoint,
       endPoint,
+      startArea: startArea || null,
+      endArea: endArea || null,
+      startDetail: startDetail || null,
+      endDetail: endDetail || null,
       displayTime,
       displayDate: displayDate || null,
       carType,
@@ -50,7 +54,7 @@ exports.createTemplate = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi tạo template thông báo'
+      message: 'Error creating notification template'
     });
   }
 };
@@ -86,7 +90,7 @@ exports.getAllTemplates = async (req, res) => {
     console.error('Error getting templates:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy danh sách template'
+      message: 'Error loading template list'
     });
   }
 };
@@ -107,7 +111,7 @@ exports.getTemplateById = async (req, res) => {
     if (!template) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy template'
+        message: 'Template not found'
       });
     }
 
@@ -122,7 +126,7 @@ exports.getTemplateById = async (req, res) => {
     console.error('Error getting template:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy template'
+      message: 'Error loading template'
     });
   }
 };
@@ -132,14 +136,14 @@ exports.getTemplateById = async (req, res) => {
 // @access  Private/Admin
 exports.updateTemplate = async (req, res) => {
   try {
-    const { region, startPoint, endPoint, displayTime, displayDate, carType, price, isActive, note } = req.body;
+    const { region, startPoint, endPoint, startArea, endArea, startDetail, endDetail, displayTime, displayDate, carType, price, isActive, note } = req.body;
 
     const template = await FakeNotification.findByPk(req.params.id);
 
     if (!template) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy template'
+        message: 'Template not found'
       });
     }
 
@@ -148,6 +152,10 @@ exports.updateTemplate = async (req, res) => {
     if (region !== undefined) updateData.region = region;
     if (startPoint !== undefined) updateData.startPoint = startPoint;
     if (endPoint !== undefined) updateData.endPoint = endPoint;
+    if (startArea !== undefined) updateData.startArea = startArea || null;
+    if (endArea !== undefined) updateData.endArea = endArea || null;
+    if (startDetail !== undefined) updateData.startDetail = startDetail || null;
+    if (endDetail !== undefined) updateData.endDetail = endDetail || null;
     if (displayTime !== undefined) updateData.displayTime = displayTime;
     if (displayDate !== undefined) updateData.displayDate = displayDate || null;
     if (carType !== undefined) updateData.carType = carType;
@@ -177,7 +185,7 @@ exports.updateTemplate = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi cập nhật template'
+      message: 'Error updating template'
     });
   }
 };
@@ -192,7 +200,7 @@ exports.deleteTemplate = async (req, res) => {
     if (!template) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy template'
+        message: 'Template not found'
       });
     }
 
@@ -200,13 +208,13 @@ exports.deleteTemplate = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Đã xóa template thành công'
+      message: 'Template deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting template:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi xóa template'
+      message: 'Error deleting template'
     });
   }
 };
@@ -221,7 +229,7 @@ exports.toggleTemplate = async (req, res) => {
     if (!template) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy template'
+        message: 'Template not found'
       });
     }
 
@@ -239,7 +247,7 @@ exports.toggleTemplate = async (req, res) => {
     console.error('Error toggling template:', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi bật/tắt template'
+      message: 'Error toggling template'
     });
   }
 };

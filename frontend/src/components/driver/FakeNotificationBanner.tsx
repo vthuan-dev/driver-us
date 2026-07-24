@@ -117,10 +117,14 @@ const FakeNotificationBanner = ({ user, region = 'north', onRequireAuth }: Props
   if (fakeNotifications.length === 0 && !showErrorPopup) return null;
 
   return (
-    <div className="fake-notifications-section" style={{ margin: '15px 20px', borderRadius: '12px' }}>
+    <div className="fake-notifications-section" style={{ margin: '15px 10px', borderRadius: '12px', padding: '16px' }}>
       <div className="section-header">
         <h3 style={{ fontSize: '1rem' }}>🔔 Ride requests available for you</h3>
-        {loadingNotifications && <span className="loading-spinner">⟳</span>}
+        {loadingNotifications ? (
+          <span className="loading-spinner">⟳</span>
+        ) : (
+          <span className="ride-latest-badge">Latest</span>
+        )}
       </div>
       
       <AnimatePresence>
@@ -134,40 +138,76 @@ const FakeNotificationBanner = ({ user, region = 'north', onRequireAuth }: Props
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
-                style={{ padding: '12px', marginBottom: '10px' }}
+                style={{ marginBottom: '12px' }}
               >
-                <div className="notification-time">
-                  <span className="time-icon">🕐</span>
-                  <span className="time-text">
-                    {notification.displayTime}
-                    {notification.displayDate ? ` on ${new Date(notification.displayDate).toLocaleDateString('en-US')}` : ''}
+                <div className="ride-card-header">
+                  <span className="ride-time-wrap">
+                    <span className="ride-time-icon">🕐</span>
+                    <span className="ride-time-text">
+                      {(() => {
+                        const d = notification.displayDate ? new Date(notification.displayDate) : new Date();
+                        const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+                        const dateStr = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+                        return `${notification.displayTime} · ${weekday}, ${dateStr}`;
+                      })()}
+                    </span>
                   </span>
                 </div>
-                <div className="notification-content">
-                  <div className="notification-title" style={{ fontSize: '15px' }}>
-                    🚗 New ride request — {notification.carType} seats
+
+                <div className="ride-summary-container">
+                  <div className="ride-summary-row">
+                    <div className="ride-cartype">🚗 Driver needed · {notification.carType}-seat</div>
+                    <span className="ride-price-block">
+                      <span className="ride-price">${notification.price.toLocaleString('en-US')}</span>
+                      <span className="ride-price-label">Trip price</span>
+                    </span>
                   </div>
-                  <div className="notification-route" style={{ color: '#2ecc71', fontWeight: 'bold' }}>
-                    {notification.startPoint} → {notification.endPoint}
+                  <div className="ride-summary-route">
+                    <span className="ride-pin ride-pin-start">📍</span>
+                    <span className="ride-summary-point ride-point-start">{notification.startPoint}</span>
+                    <span className="ride-summary-arrow">→</span>
+                    <span className="ride-pin ride-pin-end">📍</span>
+                    <span className="ride-summary-point ride-point-end">{notification.endPoint}</span>
                   </div>
-                  <div className="notification-price" style={{ color: '#e74c3c', fontSize: '16px' }}>
-                    ${notification.price}
-                  </div>
-                  {notification.note && (
-                    <div className="notification-note" style={{
-                      marginTop: '8px',
-                      padding: '6px 10px',
-                      background: '#fffbea',
-                      borderLeft: '3px solid #f39c12',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      color: '#7d6608',
-                      lineHeight: '1.4'
-                    }}>
-                      📝 {notification.note}
-                    </div>
-                  )}
                 </div>
+
+                <div className="ride-timeline">
+                  <div className="ride-timeline-row">
+                    <span className="ride-marker ride-marker-start" />
+                    <div className="ride-timeline-content">
+                      <div className="ride-point-head">
+                        <span className="ride-badge ride-badge-start">📍 Pickup</span>
+                        <div className="ride-point-name">{notification.startDetail || notification.startPoint}</div>
+                      </div>
+                      {notification.startArea && (
+                        <div className="ride-point-area">Area: {notification.startArea}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ride-timeline-connector" />
+                  <div className="ride-timeline-row">
+                    <span className="ride-marker ride-marker-end" />
+                    <div className="ride-timeline-content">
+                      <div className="ride-point-head">
+                        <span className="ride-badge ride-badge-end">📍 Drop-off</span>
+                        <div className="ride-point-name">{notification.endDetail || notification.endPoint}</div>
+                      </div>
+                      {notification.endArea && (
+                        <div className="ride-point-area">Area: {notification.endArea}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {notification.note && (
+                  <div className="ride-note-box">
+                    <span className="ride-note-icon">📋</span>
+                    <span className="ride-note-text">
+                      <strong>Special request:</strong> {notification.note}
+                    </span>
+                  </div>
+                )}
+
                 <button
                   className="accept-ride-btn"
                   onClick={() => {
@@ -178,9 +218,8 @@ const FakeNotificationBanner = ({ user, region = 'north', onRequireAuth }: Props
                     handleAcceptFakeNotification(notification._id);
                   }}
                   disabled={acceptingNotificationId === notification._id}
-                  style={{ marginTop: '10px', padding: '10px' }}
                 >
-                  {acceptingNotificationId === notification._id ? 'Processing...' : 'Accept Ride'}
+                  {acceptingNotificationId === notification._id ? 'Processing...' : 'Accept ride now  ›'}
                 </button>
               </motion.div>
             ))}

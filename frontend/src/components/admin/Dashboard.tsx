@@ -50,6 +50,21 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
   const [pwMessage, setPwMessage] = useState('');
   const [pwShow, setPwShow] = useState({ current: false, next: false, confirm: false });
 
+  // ── Income modal state ──
+  const [incomeModalUser, setIncomeModalUser] = useState<User | null>(null);
+  const [incomeForm, setIncomeForm] = useState({
+    fakeIncomeAmount: '',
+    fakeIncomeTips: '',
+  });
+  const [incomeHistory, setIncomeHistory] = useState<{ date: string; amount: string }[]>([]);
+  const [incomeLoading, setIncomeLoading] = useState(false);
+  const [incomeMsg, setIncomeMsg] = useState('');
+
+  // ── Income user-search state ──
+  const [incomeSearchOpen, setIncomeSearchOpen] = useState(false);
+  const [incomeSearchQuery, setIncomeSearchQuery] = useState('');
+  const [incomeSearchResults, setIncomeSearchResults] = useState<User[]>([]);
+
   const loadUsers = async () => {
     try {
       const response = await usersAPI.getAllUsers();
@@ -117,7 +132,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
   };
 
   const handleBanUser = async (userId: string, userName: string) => {
-    const reason = prompt(`Lý do khóa tài khoản "${userName}"? (để trống nếu không cần)`);
+    const reason = prompt(`Reason for banning "${userName}"? (leave blank if none)`);
     if (reason === null) return;
     setLoading(true);
     try {
@@ -125,28 +140,28 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
       await loadUsers();
     } catch (error) {
       console.error('Error banning user:', error);
-      alert('Có lỗi xảy ra khi khóa tài khoản');
+      alert('An error occurred while banning the account');
     } finally {
       setLoading(false);
     }
   };
 
   const handleUnbanUser = async (userId: string, userName: string) => {
-    if (!confirm(`Mở khóa tài khoản "${userName}"?`)) return;
+    if (!confirm(`Unban account "${userName}"?`)) return;
     setLoading(true);
     try {
       await usersAPI.unbanUser(userId);
       await loadUsers();
     } catch (error) {
       console.error('Error unbanning user:', error);
-      alert('Có lỗi xảy ra khi mở khóa tài khoản');
+      alert('An error occurred while unbanning the account');
     } finally {
       setLoading(false);
     }
   };
 
   const handleRemoveUser = async (userId: string, userName: string) => {
-    if (!confirm(`Xóa "${userName}" khỏi nhóm? Tài xế sẽ bị xóa khỏi hệ thống.`)) {
+    if (!confirm(`Remove "${userName}" from the group? The driver will be deleted from the system.`)) {
       return;
     }
     setLoading(true);
@@ -155,14 +170,98 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
       await loadUsers();
     } catch (error) {
       console.error('Error removing user:', error);
-      alert('Có lỗi xảy ra khi xóa tài xế');
+      alert('An error occurred while removing the driver');
     } finally {
       setLoading(false);
     }
   };
 
+  // Open income modal for a specific user
+  const openIncomeModal = (user: User) => {
+    setIncomeModalUser(user);
+    setIncomeSearchOpen(false);
+    setIncomeSearchQuery('');
+    setIncomeSearchResults([]);
+    setIncomeForm({ fakeIncomeAmount: '', fakeIncomeTips: '' });
+    // Pre-populate today as first history row (MM/DD)
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    setIncomeHistory([{ date: `${mm}/${dd}`, amount: '' }]);
+    setIncomeMsg('');
+  };
+
+  // Open the user-search step
+  const openIncomeSearch = () => {
+    setIncomeSearchOpen(true);
+    setIncomeSearchQuery('');
+    setIncomeSearchResults(users.filter(u => u.status === 'approved').slice(0, 8));
+  };
+
+  // Search handler – runs against already-loaded users list
+  const handleIncomeSearch = (q: string) => {
+    setIncomeSearchQuery(q);
+    const approved = users.filter(u => u.status === 'approved');
+    if (!q.trim()) {
+      setIncomeSearchResults(approved.slice(0, 8));
+      return;
+    }
+    const numeric = q.replace(/\D/g, '');
+    const lower = q.toLowerCase();
+    const results = approved.filter(u => {
+      const nameMatch = u.name.toLowerCase().includes(lower);
+      const phoneMatch = numeric ? u.phone.replace(/\D/g, '').includes(numeric) : false;
+      return nameMatch || phoneMatch;
+    }).slice(0, 10);
+    setIncomeSearchResults(results);
+  };
+
+  const fmtInput = (raw: string) => raw.replace(/\D/g, '');
+  const parseMoney = (s: string) => parseInt(s.replace(/\D/g, ''), 10) || 0;
+  const displayMoney = (s: string) => {
+    const n = parseMoney(s);
+    return n > 0 ? '$' + n.toLocaleString('en-US') : '';
+  };
+
+  const handleSetIncome = async () => {
+    if (!incomeModalUser) return;
+    const amount = parseMoney(incomeForm.fakeIncomeAmount);
+    const tips = parseMoney(incomeForm.fakeIncomeTips);
+
+    // Build history from rows that have both date + amount filled
+    const history = incomeHistory
+      .filter(r => r.date.trim() && r.amount.trim())
+      .map(r => ({ date: r.date.trim(), amount: parseMoney(r.amount) }));
+
+    // If no history rows provided and total > 0, auto-generate one entry for today
+    if (history.length === 0 && amount + tips > 0) {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      history.push({ date: `${mm}/${dd}`, amount: amount + tips });
+    }
+
+    setIncomeLoading(true);
+    try {
+      await usersAPI.setDriverIncome(incomeModalUser._id, {
+        fakeIncomeAmount: amount,
+        fakeIncomeTips: tips,
+        fakeIncomeHistory: history,
+      });
+      setIncomeMsg('✅ Income updated successfully!');
+      setTimeout(() => {
+        setIncomeModalUser(null);
+        setIncomeMsg('');
+      }, 1500);
+    } catch (err: any) {
+      setIncomeMsg('❌ Error: ' + (err.response?.data?.message || 'Unable to update'));
+    } finally {
+      setIncomeLoading(false);
+    }
+  };
+
   const handleDeleteRequest = async (requestId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa yêu cầu này?')) {
+    if (!confirm('Are you sure you want to delete this request?')) {
       return;
     }
     
@@ -172,7 +271,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
       await loadRequests();
     } catch (error) {
       console.error('Error deleting request:', error);
-      alert('Có lỗi xảy ra khi xóa yêu cầu');
+      alert('An error occurred while deleting the request');
     } finally {
       setLoading(false);
     }
@@ -250,52 +349,60 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
             <div className="admin-profile">
               <div className="admin-avatar">👤</div>
               <div className="admin-details">
-                <h3>Xin chào, {admin.username}</h3>
-                <p>Quản trị viên</p>
+                <h3>Hello, {admin.username}</h3>
+                <p>Administrator</p>
               </div>
             </div>
             <button onClick={onLogout} className="logout-button">
-              🚪 Đăng xuất
+              🚪 Log out
             </button>
           </div>
 
           <div className="sidebar-section">
-            <h3>🧭 Điều hướng</h3>
+            <h3>🧭 Navigation</h3>
             <div className="tabs">
               <button 
                 className={`tab ${activeTab === 'users' ? 'active' : ''}`}
                 onClick={() => setActiveTab('users')}
               >
                 <span>👥</span>
-                <span>Quản lý người dùng</span>
+                <span>User Management</span>
               </button>
               <button 
                 className={`tab ${activeTab === 'requests' ? 'active' : ''}`}
                 onClick={() => setActiveTab('requests')}
               >
                 <span>📋</span>
-                <span>Yêu cầu chờ cuốc</span>
+                <span>Ride Requests</span>
               </button>
               <button 
                 className={`tab ${activeTab === 'fake-notifications' ? 'active' : ''}`}
                 onClick={() => setActiveTab('fake-notifications')}
               >
                 <span>📢</span>
-                <span>Quản lý thông báo ảo</span>
+                <span>Fake Notifications</span>
               </button>
               <button 
                 className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
                 onClick={() => setActiveTab('settings')}
               >
                 <span>⚙️</span>
-                <span>Cấu hình ngân hàng</span>
+                <span>Payment Configuration</span>
               </button>
               <button 
                 className={`tab ${activeTab === 'change-password' ? 'active' : ''}`}
                 onClick={() => setActiveTab('change-password')}
               >
                 <span>🔑</span>
-                <span>Đổi mật khẩu</span>
+                <span>Change Password</span>
+              </button>
+              <button
+                className="tab"
+                style={{ background: 'linear-gradient(135deg,#1a2340,#243252)', color: '#fff', marginTop: 8 }}
+                onClick={openIncomeSearch}
+              >
+                <span>💵</span>
+                <span>Set Fake Income</span>
               </button>
             </div>
           </div>
@@ -304,7 +411,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
         <div className="dashboard-main">
           {/* Statistics Section - Outside sidebar */}
           <div className="stats-section">
-            <h2>📊 Thống kê tổng quan</h2>
+            <h2>📊 Overview Statistics</h2>
             <div className="stats-grid">
               <motion.div 
                 className="stat-card"
@@ -314,7 +421,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
               >
                 <div className="stat-icon">⏳</div>
                 <div className="stat-number">{pendingUsers.length}</div>
-                <div className="stat-label">Chờ phê duyệt</div>
+                <div className="stat-label">Pending Approval</div>
               </motion.div>
               
               <motion.div 
@@ -325,7 +432,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
               >
                 <div className="stat-icon">✅</div>
                 <div className="stat-number">{approvedUsers.length}</div>
-                <div className="stat-label">Đã phê duyệt</div>
+                <div className="stat-label">Approved</div>
               </motion.div>
               
               <motion.div 
@@ -336,49 +443,57 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
               >
                 <div className="stat-icon">🚗</div>
                 <div className="stat-number">{requests.length}</div>
-                <div className="stat-label">Yêu cầu chờ cuốc</div>
+                <div className="stat-label">Ride Requests</div>
               </motion.div>
             </div>
           </div>
 
           {/* Mobile Navigation - Outside sidebar */}
           <div className="mobile-navigation">
-            <h2>🧭 Điều hướng</h2>
+            <h2>🧭 Navigation</h2>
             <div className="mobile-tabs">
               <button 
                 className={`mobile-tab ${activeTab === 'users' ? 'active' : ''}`}
                 onClick={() => setActiveTab('users')}
               >
                 <span>👥</span>
-                <span>Quản lý người dùng</span>
+                <span>Users</span>
               </button>
               <button 
                 className={`mobile-tab ${activeTab === 'requests' ? 'active' : ''}`}
                 onClick={() => setActiveTab('requests')}
               >
                 <span>📋</span>
-                <span>Yêu cầu chờ cuốc</span>
+                <span>Requests</span>
               </button>
               <button 
                 className={`mobile-tab ${activeTab === 'fake-notifications' ? 'active' : ''}`}
                 onClick={() => setActiveTab('fake-notifications')}
               >
                 <span>📢</span>
-                <span>Quản lý thông báo ảo</span>
+                <span>Notifications</span>
               </button>
               <button 
                 className={`mobile-tab ${activeTab === 'settings' ? 'active' : ''}`}
                 onClick={() => setActiveTab('settings')}
               >
                 <span>⚙️</span>
-                <span>Cấu hình NH</span>
+                <span>Payment</span>
               </button>
               <button 
                 className={`mobile-tab ${activeTab === 'change-password' ? 'active' : ''}`}
                 onClick={() => setActiveTab('change-password')}
               >
                 <span>🔑</span>
-                <span>Đổi MK</span>
+                <span>Password</span>
+              </button>
+              <button
+                className="mobile-tab"
+                style={{ background: 'linear-gradient(135deg,#1a2340,#243252)', color: '#fff' }}
+                onClick={openIncomeSearch}
+              >
+                <span>💵</span>
+                <span>Income</span>
               </button>
             </div>
           </div>
@@ -386,14 +501,14 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
           <div className="tab-content">
           {activeTab === 'users' && (
             <div className="users-section">
-              <h2>Danh sách người dùng</h2>
+              <h2>User List</h2>
               
               {/* Search Input */}
               <div className="search-container">
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Tìm kiếm theo số điện thoại..."
+                  placeholder="Search by phone number..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -413,32 +528,32 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                   className={`filter-tab ${userStatusFilter === 'pending' ? 'active' : ''}`}
                   onClick={() => setUserStatusFilter('pending')}
                 >
-                  Chờ phê duyệt ({pendingUsers.length})
+                  Pending Approval ({pendingUsers.length})
                 </button>
                 <button
                   className={`filter-tab ${userStatusFilter === 'approved' ? 'active' : ''}`}
                   onClick={() => setUserStatusFilter('approved')}
                 >
-                  Đã phê duyệt ({approvedUsers.length})
+                  Approved ({approvedUsers.length})
                 </button>
                 <button
                   className={`filter-tab ${userStatusFilter === 'rejected' ? 'active' : ''}`}
                   onClick={() => setUserStatusFilter('rejected')}
                 >
-                  Đã từ chối ({rejectedUsers.length})
+                  Rejected ({rejectedUsers.length})
                 </button>
               </div>
 
               {/* No results message */}
               {searchQuery && filteredPendingUsers.length === 0 && filteredApprovedUsers.length === 0 && filteredRejectedUsers.length === 0 && (
                 <div className="no-results">
-                  <p>Không tìm thấy người dùng với số điện thoại "{searchQuery}"</p>
+                  <p>No users found with phone number "{searchQuery}"</p>
                 </div>
               )}
 
               {(searchQuery ? filteredPendingUsers.length > 0 : userStatusFilter === 'pending' && filteredPendingUsers.length > 0) && (
                 <div className="section">
-                  <h3>Chờ phê duyệt ({filteredPendingUsers.length})</h3>
+                  <h3>Pending Approval ({filteredPendingUsers.length})</h3>
                   <div className="user-list">
                     {filteredPendingUsers.map(user => (
                       <motion.div 
@@ -449,20 +564,20 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                       >
                         <div className="user-avatar">
                           {user.carImage ? (
-                            <img src={user.carImage} alt={`Xe cua ${user.name}`} />
+                            <img src={user.carImage} alt={`${user.name}'s car`} />
                           ) : (
                             <span>CAR</span>
                           )}
                         </div>
                         <div className="user-info">
                           <div className="user-name">{user.name}</div>
-                          <div className="user-phone">Tài khoản: {user.phone}</div>
+                          <div className="user-phone">Account: {user.phone}</div>
                           {user.plainPassword && (
-                            <div className="user-plain-password">Mật khẩu: <strong>{user.plainPassword}</strong></div>
+                            <div className="user-plain-password">Password: <strong>{user.plainPassword}</strong></div>
                           )}
-                          <div className="user-car">Tên phương tiện: {user.carType} - {user.carYear}</div>
+                          <div className="user-car">Vehicle: {user.carType} - {user.carYear}</div>
                           <div className="user-date">
-                            Đăng ký: {new Date(user.createdAt).toLocaleDateString('vi-VN')}
+                            Registered: {new Date(user.createdAt).toLocaleDateString('en-US')}
                           </div>
                         </div>
                         <div className="user-actions">
@@ -471,14 +586,14 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                             onClick={() => handleApproveUser(user._id)}
                             disabled={loading}
                           >
-                            Phê duyệt
+                            Approve
                           </button>
                           <button 
                             className="reject-btn"
                             onClick={() => handleRejectUser(user._id)}
                             disabled={loading}
                           >
-                            Từ chối
+                            Reject
                           </button>
                         </div>
                       </motion.div>
@@ -489,33 +604,33 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
               {(searchQuery ? filteredApprovedUsers.length > 0 : userStatusFilter === 'approved' && filteredApprovedUsers.length > 0) && (
                 <div className="section">
-                  <h3>Đã phê duyệt ({filteredApprovedUsers.length})</h3>
+                  <h3>Approved ({filteredApprovedUsers.length})</h3>
                   <div className="user-list">
                     {filteredApprovedUsers.map(user => (
                       <div key={user._id} className="user-card approved">
                         <div className="user-avatar">
                           {user.carImage ? (
-                            <img src={user.carImage} alt={`Xe cua ${user.name}`} />
+                            <img src={user.carImage} alt={`${user.name}'s car`} />
                           ) : (
                             <span>CAR</span>
                           )}
                         </div>
                         <div className="user-info">
                           <div className="user-name">{user.name}</div>
-                          <div className="user-phone">Tài khoản: {user.phone}</div>
+                          <div className="user-phone">Account: {user.phone}</div>
                           {user.plainPassword && (
-                            <div className="user-plain-password">Mật khẩu: <strong>{user.plainPassword}</strong></div>
+                            <div className="user-plain-password">Password: <strong>{user.plainPassword}</strong></div>
                           )}
-                          <div className="user-car">Tên phương tiện: {user.carType} - {user.carYear}</div>
+                          <div className="user-car">Vehicle: {user.carType} - {user.carYear}</div>
                           <div className="user-date">
-                            Phê duyệt: {user.approvedAt ? new Date(user.approvedAt).toLocaleDateString('vi-VN') : 'N/A'}
+                            Approved: {user.approvedAt ? new Date(user.approvedAt).toLocaleDateString('en-US') : 'N/A'}
                           </div>
                         </div>
                         <div className="user-actions">
                           {user.isBanned ? (
-                            <div className="status-badge banned">Đã khóa</div>
+                            <div className="status-badge banned">Banned</div>
                           ) : (
-                            <div className="status-badge approved">Đã phê duyệt</div>
+                            <div className="status-badge approved">Approved</div>
                           )}
                           {user.isBanned ? (
                             <button
@@ -523,7 +638,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                               onClick={() => handleUnbanUser(user._id, user.name)}
                               disabled={loading}
                             >
-                              Mở khóa
+                              Unban
                             </button>
                           ) : (
                             <button
@@ -531,7 +646,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                               onClick={() => handleBanUser(user._id, user.name)}
                               disabled={loading}
                             >
-                              Khóa tài khoản
+                              Ban Account
                             </button>
                           )}
                           <button
@@ -539,7 +654,14 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                             onClick={() => handleRemoveUser(user._id, user.name)}
                             disabled={loading}
                           >
-                            Xóa khỏi nhóm
+                            Remove from Group
+                          </button>
+                          <button
+                            className="income-btn"
+                            onClick={() => openIncomeModal(user)}
+                            disabled={loading}
+                          >
+                            💵 Set Income
                           </button>
                         </div>
                       </div>
@@ -550,29 +672,29 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
               {(searchQuery ? filteredRejectedUsers.length > 0 : userStatusFilter === 'rejected' && filteredRejectedUsers.length > 0) && (
                 <div className="section">
-                  <h3>Đã từ chối ({filteredRejectedUsers.length})</h3>
+                  <h3>Rejected ({filteredRejectedUsers.length})</h3>
                   <div className="user-list">
                     {filteredRejectedUsers.map(user => (
                       <div key={user._id} className="user-card rejected">
                         <div className="user-avatar">
                           {user.carImage ? (
-                            <img src={user.carImage} alt={`Xe cua ${user.name}`} />
+                            <img src={user.carImage} alt={`${user.name}'s car`} />
                           ) : (
                             <span>CAR</span>
                           )}
                         </div>
                         <div className="user-info">
                           <div className="user-name">{user.name}</div>
-                          <div className="user-phone">Tài khoản: {user.phone}</div>
+                          <div className="user-phone">Account: {user.phone}</div>
                           {user.plainPassword && (
-                            <div className="user-plain-password">Mật khẩu: <strong>{user.plainPassword}</strong></div>
+                            <div className="user-plain-password">Password: <strong>{user.plainPassword}</strong></div>
                           )}
-                          <div className="user-car">Tên phương tiện: {user.carType} - {user.carYear}</div>
+                          <div className="user-car">Vehicle: {user.carType} - {user.carYear}</div>
                           <div className="user-date">
-                            Từ chối: {user.approvedAt ? new Date(user.approvedAt).toLocaleDateString('vi-VN') : 'N/A'}
+                            Rejected: {user.approvedAt ? new Date(user.approvedAt).toLocaleDateString('en-US') : 'N/A'}
                           </div>
                         </div>
-                        <div className="status-badge rejected">Đã từ chối</div>
+                        <div className="status-badge rejected">Rejected</div>
                       </div>
                     ))}
                   </div>
@@ -651,18 +773,18 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
           {activeTab === 'change-password' && (
             <div className="settings-section">
-              <h2>🔑 Đổi mật khẩu Admin</h2>
-              <p style={{ color: '#6b7280', marginBottom: 24, fontSize: 14 }}>Mật khẩu mới phải có ít nhất 6 ký tự.</p>
+              <h2>🔑 Change Admin Password</h2>
+              <p style={{ color: '#6b7280', marginBottom: 24, fontSize: 14 }}>New password must be at least 6 characters.</p>
 
               {pwMessage && (
-                <div style={{ padding: '10px 16px', borderRadius: 8, marginBottom: 16, background: pwMessage.includes('thành công') ? '#d4edda' : '#f8d7da', color: pwMessage.includes('thành công') ? '#155724' : '#721c24' }}>
+                <div style={{ padding: '10px 16px', borderRadius: 8, marginBottom: 16, background: pwMessage.includes('successfully') ? '#d4edda' : '#f8d7da', color: pwMessage.includes('successfully') ? '#155724' : '#721c24' }}>
                   {pwMessage}
                 </div>
               )}
 
               <div style={{ maxWidth: 420 }}>
                 {(['currentPassword', 'newPassword', 'confirmPassword'] as const).map((field) => {
-                  const labels: Record<string, string> = { currentPassword: 'Mật khẩu hiện tại', newPassword: 'Mật khẩu mới', confirmPassword: 'Xác nhận mật khẩu mới' };
+                  const labels: Record<string, string> = { currentPassword: 'Current Password', newPassword: 'New Password', confirmPassword: 'Confirm New Password' };
                   const keys: Record<string, keyof typeof pwShow> = { currentPassword: 'current', newPassword: 'next', confirmPassword: 'confirm' };
                   const showKey = keys[field];
                   return (
@@ -691,29 +813,29 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                 <button
                   onClick={async () => {
                     if (!pwForm.currentPassword || !pwForm.newPassword || !pwForm.confirmPassword) {
-                      setPwMessage('Vui lòng nhập đầy đủ thông tin!'); setTimeout(() => setPwMessage(''), 3000); return;
+                      setPwMessage('Please fill in all fields!'); setTimeout(() => setPwMessage(''), 3000); return;
                     }
                     if (pwForm.newPassword !== pwForm.confirmPassword) {
-                      setPwMessage('Mật khẩu xác nhận không khớp!'); setTimeout(() => setPwMessage(''), 3000); return;
+                      setPwMessage('Password confirmation does not match!'); setTimeout(() => setPwMessage(''), 3000); return;
                     }
                     if (pwForm.newPassword.length < 6) {
-                      setPwMessage('Mật khẩu mới phải có ít nhất 6 ký tự!'); setTimeout(() => setPwMessage(''), 3000); return;
+                      setPwMessage('New password must be at least 6 characters!'); setTimeout(() => setPwMessage(''), 3000); return;
                     }
                     setPwLoading(true);
                     try {
                       await adminAuthAPI.changePassword({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword });
-                      setPwMessage('✅ Đổi mật khẩu thành công!');
+                      setPwMessage('✅ Password changed successfully!');
                       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
                       setTimeout(() => setPwMessage(''), 4000);
                     } catch (err: any) {
-                      setPwMessage('❌ ' + (err.response?.data?.message || 'Không thể đổi mật khẩu'));
+                      setPwMessage('❌ ' + (err.response?.data?.message || 'Unable to change password'));
                       setTimeout(() => setPwMessage(''), 4000);
                     } finally { setPwLoading(false); }
                   }}
                   disabled={pwLoading}
                   style={{ width: '100%', padding: '12px', borderRadius: 8, background: '#0f766e', color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: pwLoading ? 'not-allowed' : 'pointer', opacity: pwLoading ? 0.7 : 1, marginTop: 4 }}
                 >
-                  {pwLoading ? 'Đang xử lý...' : '🔑 Đổi mật khẩu'}
+                  {pwLoading ? 'Processing...' : '🔑 Change Password'}
                 </button>
               </div>
             </div>
@@ -722,15 +844,15 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
           {activeTab === 'requests' && (
             <div className="requests-section">
             <div className="requests-header">
-                <h2>Yêu cầu cuốc xe</h2>
-                <p className="requests-subtitle">Lọc nhanh: chờ ghép, đã ghép, đã hoàn thành. Bạn có thể xóa bất kỳ cuốc nào.</p>
+                <h2>Ride Requests</h2>
+                <p className="requests-subtitle">Quick filters: waiting, matched, completed. You can delete any ride.</p>
               
               {/* Search Input for Requests */}
               <div className="search-container">
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Tìm kiếm theo số điện thoại..."
+                  placeholder="Search by phone number..."
                   value={requestSearchQuery}
                   onChange={(e) => setRequestSearchQuery(e.target.value)}
                 />
@@ -749,25 +871,25 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                   className={`filter-btn ${requestStatusFilter === 'all' ? 'active' : ''}`}
                   onClick={() => setRequestStatusFilter('all')}
                 >
-                  Tất cả ({requests.length})
+                  All ({requests.length})
                 </button>
                 <button
                   className={`filter-btn ${requestStatusFilter === 'waiting' ? 'active' : ''}`}
                   onClick={() => setRequestStatusFilter('waiting')}
                 >
-                  Chờ ghép ({requests.filter(r => r.status === 'waiting').length})
+                  Waiting ({requests.filter(r => r.status === 'waiting').length})
                 </button>
                 <button
                   className={`filter-btn ${requestStatusFilter === 'matched' ? 'active' : ''}`}
                   onClick={() => setRequestStatusFilter('matched')}
                 >
-                  Đã ghép ({requests.filter(r => r.status === 'matched').length})
+                  Matched ({requests.filter(r => r.status === 'matched').length})
                 </button>
                 <button
                   className={`filter-btn ${requestStatusFilter === 'completed' ? 'active' : ''}`}
                   onClick={() => setRequestStatusFilter('completed')}
                 >
-                  Hoàn thành ({requests.filter(r => r.status === 'completed').length})
+                  Completed ({requests.filter(r => r.status === 'completed').length})
                 </button>
               </div>
             </div>
@@ -775,7 +897,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
               {/* No results message */}
               {requestSearchQuery && filteredRequests.length === 0 && (
                 <div className="no-results">
-                  <p>Không tìm thấy yêu cầu với số điện thoại "{requestSearchQuery}"</p>
+                  <p>No requests found with phone number "{requestSearchQuery}"</p>
                 </div>
               )}
               
@@ -796,36 +918,36 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                         {request.startPoint} ⇄ {request.endPoint}
                       </div>
                       <div className="request-price">
-                        Giá: {request.price.toLocaleString('vi-VN')} VND
+                        Price: ${request.price.toLocaleString('en-US')}
                       </div>
                       {request.note && (
                         <div className="request-note">
-                          Ghi chú: {request.note}
+                          Note: {request.note}
                         </div>
                       )}
                       <div className="request-date">
-                        {new Date(request.createdAt).toLocaleString('vi-VN')}
+                        {new Date(request.createdAt).toLocaleString('en-US')}
                       </div>
                     </div>
                     <div className="request-status">
                       <span className={`status-badge ${request.status}`}>
-                        {request.status === 'waiting' ? 'Chờ ghép' : 
-                         request.status === 'matched' ? 'Đã ghép' : 'Hoàn thành'}
+                        {request.status === 'waiting' ? 'Waiting' : 
+                         request.status === 'matched' ? 'Matched' : 'Completed'}
                       </span>
                       <button
                         className="ban-btn"
                         onClick={() => handleBanUser(request.userId, request.name)}
                         disabled={loading}
-                        title="Khóa tài khoản tài xế"
+                        title="Ban driver account"
                         style={{fontSize: '12px', padding: '6px 10px'}}
                       >
-                        🔒 Khóa
+                        🔒 Ban
                       </button>
                       <button 
                         className="delete-btn"
                         onClick={() => handleDeleteRequest(request._id)}
                         disabled={loading}
-                        title="Xóa yêu cầu"
+                        title="Delete request"
                       >
                         🗑️
                       </button>
@@ -838,6 +960,358 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
           </div>
         </div>
       </div>
+
+      {/* ── Income User Search Modal ───────────────────────────── */}
+      {incomeSearchOpen && !incomeModalUser && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 24,
+            width: '100%', maxWidth: 480,
+            boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+            maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            {/* Header */}
+            <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#1a2340,#243252)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💵</span>
+                  Set Fake Income
+                </div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Search for a driver to set income</div>
+              </div>
+              <button onClick={() => { setIncomeSearchOpen(false); setIncomeSearchQuery(''); }} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: '#f3f4f6', color: '#6b7280', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            </div>
+
+            {/* Search input */}
+            <div style={{ padding: '16px 20px 8px' }}>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none' }}>🔍</span>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search by name or phone number..."
+                  value={incomeSearchQuery}
+                  onChange={e => handleIncomeSearch(e.target.value)}
+                  style={{
+                    width: '100%', padding: '13px 14px 13px 42px',
+                    borderRadius: 14, border: '2px solid #e5e7eb',
+                    fontSize: 15, outline: 'none', boxSizing: 'border-box',
+                    fontFamily: 'inherit', fontWeight: 500,
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                />
+                {incomeSearchQuery && (
+                  <button onClick={() => handleIncomeSearch('')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', fontSize: 18, color: '#9ca3af', cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+                )}
+              </div>
+            </div>
+
+            {/* Results */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '4px 12px 20px' }}>
+              {incomeSearchResults.length === 0 && incomeSearchQuery.trim() ? (
+                <div style={{ textAlign: 'center', padding: '32px 20px', color: '#9ca3af' }}>
+                  <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>No drivers found</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>Try searching by a different name or phone</div>
+                </div>
+              ) : (
+                incomeSearchResults.map(u => (
+                  <button
+                    key={u._id}
+                    onClick={() => openIncomeModal(u)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', borderRadius: 14, border: 'none',
+                      background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                      transition: 'background 0.15s', marginBottom: 4,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {/* Avatar */}
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                      background: 'linear-gradient(135deg,#00b14f,#009140)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 18, fontWeight: 800, color: '#fff',
+                    }}>
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{u.name}</div>
+                      <div style={{ fontSize: 13, color: '#6b7280' }}>{u.phone}</div>
+                    </div>
+                    {/* Arrow */}
+                    <div style={{ fontSize: 20, color: '#d1d5db' }}>›</div>
+                  </button>
+                ))
+              )}
+
+              {!incomeSearchQuery && incomeSearchResults.length > 0 && (
+                <div style={{ textAlign: 'center', fontSize: 12, color: '#9ca3af', paddingTop: 8 }}>
+                  Showing {incomeSearchResults.length} recent drivers · Type to search more
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Income Modal ───────────────────────────────────────── */}
+      {incomeModalUser && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}>
+          {/* Centered dialog */}
+          <div style={{
+            background: '#fff',
+            borderRadius: 24,
+            width: '100%', maxWidth: 500,
+            boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+            maxHeight: '90vh',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '20px 20px 16px',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+              borderBottom: '1px solid #f3f4f6',
+            }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: 'linear-gradient(135deg,#1a2340,#243252)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18
+                  }}>💵</span>
+                  Set Fake Income
+                </div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+                  👤 {incomeModalUser?.name} &nbsp;·&nbsp; {incomeModalUser?.phone}
+                </div>
+              </div>
+              <button onClick={() => setIncomeModalUser(null)} style={{
+                width: 36, height: 36, borderRadius: '50%', border: 'none',
+                background: '#f3f4f6', color: '#6b7280', fontSize: 20,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, marginTop: 4,
+              }}>‹</button>
+            </div>
+
+            {/* Scrollable body */}
+            <div style={{ overflowY: 'auto', padding: '20px 20px 8px', flex: 1 }}>
+              {incomeMsg && (
+                <div style={{
+                  padding: '12px 16px', borderRadius: 12, marginBottom: 16,
+                  background: incomeMsg.includes('✅') ? '#d1fae5' : '#fee2e2',
+                  color: incomeMsg.includes('✅') ? '#065f46' : '#991b1b',
+                  fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8,
+                }}>{incomeMsg}</div>
+              )}
+
+              {/* ── Two income fields side by side ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                {/* Ride fare */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    🚗 Ride Fare
+                  </div>
+                  <input
+                    type="text" inputMode="numeric"
+                    placeholder="0"
+                    value={incomeForm.fakeIncomeAmount}
+                    onChange={e => setIncomeForm(f => ({ ...f, fakeIncomeAmount: fmtInput(e.target.value) }))}
+                    style={{
+                      width: '100%', padding: '12px 14px', borderRadius: 12,
+                      border: '2px solid #e5e7eb', fontSize: 15, outline: 'none',
+                      boxSizing: 'border-box', fontWeight: 600, fontFamily: 'inherit',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                  />
+                  {displayMoney(incomeForm.fakeIncomeAmount) && (
+                    <div style={{ fontSize: 11, color: '#10b981', marginTop: 4, fontWeight: 700 }}>
+                      {displayMoney(incomeForm.fakeIncomeAmount)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tips */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    🎁 Tips
+                  </div>
+                  <input
+                    type="text" inputMode="numeric"
+                    placeholder="0"
+                    value={incomeForm.fakeIncomeTips}
+                    onChange={e => setIncomeForm(f => ({ ...f, fakeIncomeTips: fmtInput(e.target.value) }))}
+                    style={{
+                      width: '100%', padding: '12px 14px', borderRadius: 12,
+                      border: '2px solid #e5e7eb', fontSize: 15, outline: 'none',
+                      boxSizing: 'border-box', fontWeight: 600, fontFamily: 'inherit',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                  />
+                  {displayMoney(incomeForm.fakeIncomeTips) && (
+                    <div style={{ fontSize: 11, color: '#10b981', marginTop: 4, fontWeight: 700 }}>
+                      {displayMoney(incomeForm.fakeIncomeTips)}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Live total preview ── */}
+              <div style={{
+                background: 'linear-gradient(135deg,#1a2340 0%,#243252 100%)',
+                borderRadius: 16, padding: '16px 20px', marginBottom: 20,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Total Income</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>
+                  ${(parseMoney(incomeForm.fakeIncomeAmount) + parseMoney(incomeForm.fakeIncomeTips)).toLocaleString('en-US')}
+                </div>
+              </div>
+
+              {/* ── Payment history rows ── */}
+              <div style={{ marginBottom: 8 }}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    📅 Payment History
+                  </div>
+                  <button
+                    onClick={() => setIncomeHistory(h => [...h, { date: '', amount: '' }])}
+                    style={{
+                      padding: '6px 14px', borderRadius: 20, border: '2px solid #6366f1',
+                      background: 'transparent', color: '#6366f1', fontSize: 13, fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >+ Add row</button>
+                </div>
+
+                {incomeHistory.length === 0 && (
+                  <div style={{
+                    textAlign: 'center', padding: '20px', borderRadius: 12,
+                    background: '#f9fafb', border: '2px dashed #e5e7eb', color: '#9ca3af', fontSize: 13,
+                  }}>
+                    No rows yet — click "+ Add row" to add one
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {incomeHistory.map((row, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex', gap: 8, alignItems: 'center',
+                      background: '#f9fafb', borderRadius: 12, padding: '10px 12px',
+                      border: '1.5px solid #e5e7eb',
+                    }}>
+                      {/* Date */}
+                      <input
+                        type="text"
+                        placeholder="MM/DD  e.g. 06/20"
+                        value={row.date}
+                        maxLength={5}
+                        onChange={e => {
+                          const val = e.target.value.replace(/[^0-9/]/g, '');
+                          setIncomeHistory(h => h.map((r, i) => i === idx ? { ...r, date: val } : r));
+                        }}
+                        style={{
+                          width: 90, padding: '8px 10px', borderRadius: 8,
+                          border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none',
+                          fontFamily: 'inherit', fontWeight: 600, background: '#fff',
+                          flexShrink: 0,
+                        }}
+                        onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                        onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                      />
+                      {/* Amount */}
+                      <input
+                        type="text" inputMode="numeric"
+                        placeholder="Amount"
+                        value={row.amount}
+                        onChange={e => {
+                          const val = fmtInput(e.target.value);
+                          setIncomeHistory(h => h.map((r, i) => i === idx ? { ...r, amount: val } : r));
+                        }}
+                        style={{
+                          flex: 1, padding: '8px 10px', borderRadius: 8,
+                          border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none',
+                          fontFamily: 'inherit', fontWeight: 600, background: '#fff',
+                        }}
+                        onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                        onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                      />
+                      {/* Amount preview */}
+                      {row.amount && (
+                        <div style={{ fontSize: 11, color: '#10b981', fontWeight: 700, flexShrink: 0, minWidth: 60 }}>
+                          ${parseMoney(row.amount).toLocaleString('en-US')}
+                        </div>
+                      )}
+                      {/* Delete */}
+                      <button
+                        onClick={() => setIncomeHistory(h => h.filter((_, i) => i !== idx))}
+                        style={{
+                          width: 28, height: 28, borderRadius: '50%', border: 'none',
+                          background: '#fee2e2', color: '#ef4444', fontSize: 16,
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer actions – always visible */}
+            <div style={{ padding: '16px 20px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 12 }}>
+              <button
+                onClick={handleSetIncome}
+                disabled={incomeLoading}
+                style={{
+                  flex: 2, padding: '14px 0', borderRadius: 14, border: 'none',
+                  background: 'linear-gradient(135deg,#10b981 0%,#059669 100%)',
+                  color: '#fff', fontSize: 15, fontWeight: 800,
+                  cursor: incomeLoading ? 'not-allowed' : 'pointer',
+                  opacity: incomeLoading ? 0.7 : 1,
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {incomeLoading ? '⏳ Saving...' : '💾 Save Income'}
+              </button>
+              <button
+                onClick={() => { setIncomeModalUser(null); setIncomeSearchOpen(true); handleIncomeSearch(''); }}
+                style={{
+                  flex: 1, padding: '14px 0', borderRadius: 14, border: '2px solid #e5e7eb',
+                  background: '#fff', color: '#6b7280', fontSize: 15, fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                ‹ Reselect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

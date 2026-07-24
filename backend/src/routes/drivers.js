@@ -5,6 +5,9 @@ const driverController = require('../controllers/driverController');
 // Get all driver posts
 router.get('/', driverController.getDrivers);
 
+// Search all drivers nationwide (no region filter)
+router.get('/search', driverController.searchDrivers);
+
 // Create driver post (admin only)
 router.post('/', driverController.createDriver);
 

@@ -13,6 +13,14 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
+    driverPostId: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    isReadByDriver: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false,

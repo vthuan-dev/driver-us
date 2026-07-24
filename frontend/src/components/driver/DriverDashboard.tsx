@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { driverAPI, bankConfigAPI } from '../../services/api';
 import AppPricingModal from './AppPricingModal';
 import DownloadAppPage from './DownloadAppPage';
+import DriverIncomePage from './DriverIncomePage';
 import './DriverDashboard.css';
 
 type User = {
@@ -52,6 +53,7 @@ const DriverDashboard = ({ user, onLogout, onBack }: DriverDashboardProps) => {
 
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showDownloadPage, setShowDownloadPage] = useState(false);
+  const [showIncomePage, setShowIncomePage] = useState(false);
   const [paypalMe, setPaypalMe] = useState((import.meta as any).env?.VITE_PAYPAL_ME || '');
   useEffect(() => {
     bankConfigAPI.getBankConfig().then((res: any) => {
@@ -135,7 +137,10 @@ const DriverDashboard = ({ user, onLogout, onBack }: DriverDashboardProps) => {
                 <span>Withdraw</span>
                 <span className="arrow">›</span>
               </button>
-
+              <button className="action-btn action-btn--income" onClick={() => setShowIncomePage(true)}>
+                <span>💵 Driver Income</span>
+                <span className="arrow">›</span>
+              </button>
             </div>
 
             {/* Stats Card */}
@@ -143,7 +148,7 @@ const DriverDashboard = ({ user, onLogout, onBack }: DriverDashboardProps) => {
               <h3>Ride Stats</h3>
               <div className="stats-grid">
                 <div className="stat-item">
-                  <div className="stat-icon">�</div>
+                  <div className="stat-icon">🛵</div>
                   <div className="stat-label">Rides completed this month</div>
                   <div className="stat-value">{loading ? '...' : monthlyTrips}</div>
                 </div>
@@ -428,6 +433,19 @@ const DriverDashboard = ({ user, onLogout, onBack }: DriverDashboardProps) => {
           user={user} 
           onBack={() => setShowDownloadPage(false)} 
         />
+      )}
+
+      {/* Income Page Overlay */}
+      {showIncomePage && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: '#f5f5f5',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+        }}>
+          <DriverIncomePage onBack={() => setShowIncomePage(false)} />
+        </div>
       )}
     </div>
   );

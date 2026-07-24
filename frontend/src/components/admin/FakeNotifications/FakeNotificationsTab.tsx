@@ -14,6 +14,10 @@ export type FakeNotification = {
   region: Region;
   startPoint: string;
   endPoint: string;
+  startArea?: string | null;
+  endArea?: string | null;
+  startDetail?: string | null;
+  endDetail?: string | null;
   displayTime: string;
   displayDate?: string | null;
   carType: CarType;
@@ -45,7 +49,7 @@ const FakeNotificationsTab = () => {
       setTemplates(response.data.data.templates);
     } catch (error: any) {
       console.error('Error loading templates:', error);
-      setError('Lỗi khi tải danh sách template');
+      setError('Failed to load template list');
     } finally {
       setLoading(false);
     }
@@ -66,11 +70,11 @@ const FakeNotificationsTab = () => {
       if (editingTemplate) {
         // Update
         await fakeNotificationsAPI.update(editingTemplate._id, data);
-        setSuccess('Cập nhật template thành công');
+        setSuccess('Template updated successfully');
       } else {
         // Create
         await fakeNotificationsAPI.create(data);
-        setSuccess('Tạo template thành công');
+        setSuccess('Template created successfully');
       }
       
       setShowForm(false);
@@ -81,7 +85,7 @@ const FakeNotificationsTab = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (error: any) {
       console.error('Error saving template:', error);
-      setError(error.response?.data?.message || 'Lỗi khi lưu template');
+      setError(error.response?.data?.message || 'Failed to save template');
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -92,18 +96,18 @@ const FakeNotificationsTab = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa template này?')) {
+    if (!confirm('Are you sure you want to delete this template?')) {
       return;
     }
 
     try {
       await fakeNotificationsAPI.delete(id);
-      setSuccess('Xóa template thành công');
+      setSuccess('Template deleted successfully');
       await loadTemplates();
       setTimeout(() => setSuccess(null), 3000);
     } catch (error: any) {
       console.error('Error deleting template:', error);
-      setError('Lỗi khi xóa template');
+      setError('Failed to delete template');
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -114,7 +118,7 @@ const FakeNotificationsTab = () => {
       await loadTemplates();
     } catch (error: any) {
       console.error('Error toggling template:', error);
-      setError('Lỗi khi bật/tắt template');
+      setError('Failed to enable/disable template');
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -122,9 +126,9 @@ const FakeNotificationsTab = () => {
   return (
     <div className="fake-notifications-tab">
       <div className="tab-header">
-        <h2>📢 Quản lý thông báo ảo</h2>
+        <h2>📢 Fake Notification Management</h2>
         <p className="tab-subtitle">
-          Tạo và quản lý các template thông báo ảo cuốc xe theo vùng miền
+          Create and manage fake ride notification templates by region
         </p>
       </div>
 
@@ -156,7 +160,7 @@ const FakeNotificationsTab = () => {
       {!showForm && (
         <div className="actions-bar">
           <button className="btn-create" onClick={handleCreate}>
-            ➕ Tạo thông báo mới
+            ➕ Create New Notification
           </button>
         </div>
       )}
@@ -174,7 +178,7 @@ const FakeNotificationsTab = () => {
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p>Đang tải...</p>
+          <p>Loading...</p>
         </div>
       ) : (
         <FakeNotificationList
