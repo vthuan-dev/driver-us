@@ -297,15 +297,15 @@ const DriverDashboard = ({ user, onLogout, onBack }: DriverDashboardProps) => {
               </div>
               <div style={{ padding: '8px 16px', overflowY: 'auto', flex: 1, maxHeight: 'calc(90vh - 60px)', WebkitOverflowScrolling: 'touch' }}>
                 <p style={{ marginTop: 0, fontSize: 15, lineHeight: 1.6, color: '#374151' }}>
-                  To withdraw your deposit and close your account, please send a $10 processing fee via PayPal below. Admin will refund your full deposit within 24 hours.
+                  To withdraw your deposit and close your account, please send a $15 processing fee via PayPal below. Admin will refund your full deposit within 24 hours.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${paypalMe}/10`)}&bgcolor=ffffff&color=003087&margin=10`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${paypalMe}/15`)}&bgcolor=ffffff&color=003087&margin=10`}
                     alt="PayPal QR"
                     style={{ width: 200, height: 200, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.10)', border: '2px solid #e5e7eb' }}
                   />
-                  <div style={{ fontSize: 12, color: '#555', textAlign: 'center' }}>Or open: <a href={`https://paypal.me/${paypalMe}/10`} target="_blank" rel="noopener noreferrer" style={{ color: '#0070ba', fontWeight: 700 }}>paypal.me/{paypalMe}/10</a></div>
+                  <div style={{ fontSize: 12, color: '#555', textAlign: 'center' }}>Or open: <a href={`https://paypal.me/${paypalMe}/15`} target="_blank" rel="noopener noreferrer" style={{ color: '#0070ba', fontWeight: 700 }}>paypal.me/{paypalMe}/15</a></div>
                   <button
                     onClick={() => { alert('Scan the QR code above with your phone to pay via PayPal.'); }}
                     style={{

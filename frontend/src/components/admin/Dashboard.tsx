@@ -732,13 +732,13 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
                 {bankConfig.paypalMe && (
                   <div style={{ marginBottom: 20, textAlign: 'center' }}>
-                    <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>QR Preview (PayPal $10):</p>
+                    <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>QR Preview (PayPal $15):</p>
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${bankConfig.paypalMe}/10`)}&bgcolor=ffffff&color=003087&margin=10`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${bankConfig.paypalMe}/15`)}&bgcolor=ffffff&color=003087&margin=10`}
                       alt="PayPal QR Preview"
                       style={{ width: 200, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.08)', border: '2px solid #e5e7eb' }}
                     />
-                    <div style={{ fontSize: 12, color: '#0070ba', marginTop: 6 }}>paypal.me/{bankConfig.paypalMe}/10</div>
+                    <div style={{ fontSize: 12, color: '#0070ba', marginTop: 6 }}>paypal.me/{bankConfig.paypalMe}/15</div>
                   </div>
                 )}
 

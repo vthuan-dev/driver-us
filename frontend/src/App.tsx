@@ -2093,18 +2093,18 @@ function MainApp() {
             <motion.div className="modal__backdrop" onClick={() => setShowPayment(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
             <motion.div className="modal__panel" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
               <div className="modal__header">
-                <div className="modal__title">Registration Fee - $10</div>
+                <div className="modal__title">Registration Fee - $15</div>
                 <button className="modal__close" onClick={() => setShowPayment(false)} aria-label="Close">×</button>
               </div>
               <div style={{ padding: '8px 16px', overflowY: 'auto', flex: 1, maxHeight: 'calc(90vh - 60px)', WebkitOverflowScrolling: 'touch' }}>
-                <p style={{ marginTop: 0 }}>Scan the QR below with your phone to pay the $10 registration fee via PayPal.</p>
+                <p style={{ marginTop: 0 }}>Scan the QR below with your phone to pay the $15 registration fee via PayPal.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${paypalMe}/10`)}&bgcolor=ffffff&color=003087&margin=10`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${paypalMe}/15`)}&bgcolor=ffffff&color=003087&margin=10`}
                     alt="PayPal QR"
                     style={{ width: 200, height: 200, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.10)', border: '2px solid #e5e7eb' }}
                   />
-                  <div style={{ fontSize: 12, color: '#555', textAlign: 'center' }}>Or open link: <a href={`https://paypal.me/${paypalMe}/10`} target="_blank" rel="noopener noreferrer" style={{ color: '#0070ba', fontWeight: 700 }}>paypal.me/{paypalMe}/10</a></div>
+                  <div style={{ fontSize: 12, color: '#555', textAlign: 'center' }}>Or open link: <a href={`https://paypal.me/${paypalMe}/15`} target="_blank" rel="noopener noreferrer" style={{ color: '#0070ba', fontWeight: 700 }}>paypal.me/{paypalMe}/15</a></div>
                 </div>
                 <div style={{ marginTop: 4, fontSize: 12, color: '#888', textAlign: 'center' }}>After payment, click the button below to complete registration.</div>
                 <div style={{ display: 'flex', gap: 12, marginTop: 16, marginBottom: 16 }}>

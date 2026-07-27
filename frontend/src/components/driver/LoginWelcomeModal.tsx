@@ -85,7 +85,7 @@ const LoginWelcomeModal = ({ isOpen, onClose, onHide2Hours, onDownloadGuide, onA
 
                   <div style={{ marginBottom: '8px', fontSize: '12px' }}>
                     <div style={{ fontWeight: 700, color: '#333', marginBottom: '2px' }}>One-time fee:</div>
-                    <div style={{ color: '#1a5276', fontWeight: 700 }}>💰 $10 / Once</div>
+                    <div style={{ color: '#1a5276', fontWeight: 700 }}>💰 $15 / Once</div>
                     <div style={{ color: '#666', fontSize: '11px' }}>No recurring charges</div>
                   </div>
 
