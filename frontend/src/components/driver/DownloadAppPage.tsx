@@ -23,9 +23,9 @@ type DownloadAppPageProps = {
 const SECRET_PASS = '838668';
 
 const DownloadAppPage: React.FC<DownloadAppPageProps> = ({ user, plan = '1y', onBack, onDownloaded }) => {
-  let amount = 20;
+  let amount = 35;
   let planLabel = '1 Year';
-  if (plan === 'lifetime') { amount = 50; planLabel = 'Lifetime'; }
+  if (plan === 'lifetime') { amount = 80; planLabel = 'Lifetime'; }
 
   const message = `App Download ${user.phone}`;
   const [paypalMe, setPaypalMe] = React.useState((import.meta as any).env?.VITE_PAYPAL_ME || '');

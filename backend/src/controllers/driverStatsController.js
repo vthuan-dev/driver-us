@@ -53,9 +53,9 @@ const getDriverStats = async (req, res) => {
 const recordDownload = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { plan } = req.body; // '6m' or '1y'
+    const { plan } = req.body; // '6m', '1y' or 'lifetime'
 
-    if (!plan || !['6m', '1y'].includes(plan)) {
+    if (!plan || !['6m', '1y', 'lifetime'].includes(plan)) {
       return res.status(400).json({ success: false, message: 'Gói không hợp lệ' });
     }
 

@@ -127,7 +127,7 @@ const LoginWelcomeModal = ({ isOpen, onClose, onHide2Hours, onDownloadGuide, onA
                   <div style={{ marginBottom: '8px', fontSize: '12px' }}>
                     <div style={{ fontWeight: 700, color: '#333', marginBottom: '2px' }}>Subscription:</div>
                     <div style={{ color: '#7d4400', fontWeight: 700, lineHeight: '1.5' }}>
-                      💳 $20 / Year<br />or 💰 $50 / Lifetime
+                      💳 $35 / Year<br />or 💰 $80 / Lifetime
                     </div>
                   </div>
 

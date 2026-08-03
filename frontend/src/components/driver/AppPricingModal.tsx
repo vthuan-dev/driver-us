@@ -11,8 +11,8 @@ type Plan = {
 };
 
 const PLANS: Plan[] = [
-  { id: '1y', label: '1 Year', months: 12, price: 20, badge: 'Popular ⭐', description: 'Best value for ongoing use' },
-  { id: 'lifetime', label: 'Lifetime', months: 9999, price: 50, badge: 'Best 👑', description: 'Pay once — use forever' },
+  { id: '1y', label: '1 Year', months: 12, price: 35, badge: 'Popular ⭐', description: 'Best value for ongoing use' },
+  { id: 'lifetime', label: 'Lifetime', months: 9999, price: 80, badge: 'Best 👑', description: 'Pay once — use forever' },
 ];
 
 type AppPricingModalProps = {

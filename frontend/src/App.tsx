@@ -758,7 +758,7 @@ function MainApp() {
     {
       target: '#joyride-pricing-cards',
       title: '💳 Choose Your Plan',
-      content: 'Pick the 1-Year plan – $20 ⭐ or Lifetime – $50 👑. Confirm payment and get your APK download link instantly!',
+      content: 'Pick the 1-Year plan – $35 ⭐ or Lifetime – $80 👑. Confirm payment and get your APK download link instantly!',
       placement: 'top',
       skipBeacon: true,
       targetWaitTimeout: 4000,
