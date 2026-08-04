@@ -19,6 +19,7 @@ backend/.env
 
 # APK
 *.apk
+!backend/driver-app.apk
 
 # Editor directories and files
 .vscode/*
