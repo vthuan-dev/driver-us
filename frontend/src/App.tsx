@@ -146,7 +146,7 @@ const fallbackDriversByRegion: Record<Region, DriverPost[]> = posts.reduce((acc,
 }, { north: [], central: [], south: [] } as Record<Region, DriverPost[]>)
 
 const regionLabels: Record<Region, string> = {
-  north: 'Northeast',
+  north: 'Northeast & Midwest',
   central: 'South',
   south: 'West',
 }
@@ -166,10 +166,12 @@ const provincesVN63 = [
 
 // US states grouped by region
 const provincesByRegion: Record<Region, string[]> = {
-  north: [ // Northeast
-    'Connecticut', 'Delaware', 'Maine', 'Maryland', 'Massachusetts',
-    'New Hampshire', 'New Jersey', 'New York', 'Pennsylvania', 'Rhode Island',
-    'Vermont'
+  north: [ // Northeast & Midwest
+    'Connecticut', 'Delaware', 'Illinois', 'Indiana', 'Iowa',
+    'Kansas', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
+    'Minnesota', 'Missouri', 'Nebraska', 'New Hampshire', 'New Jersey',
+    'New York', 'North Dakota', 'Ohio', 'Pennsylvania', 'Rhode Island',
+    'South Dakota', 'Vermont', 'Wisconsin'
   ],
   central: [ // South
     'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky',
@@ -1812,7 +1814,7 @@ function MainApp() {
                   <motion.select name="region" value={form.region} onChange={(e) => onChange(e as any)} required
                     whileFocus={{ boxShadow: '0 0 0 3px rgba(0,177,79,.18)' }}
                   >
-                    <option value="north">Northeast</option>
+                    <option value="north">Northeast & Midwest</option>
                     <option value="central">South</option>
                     <option value="south">West</option>
                   </motion.select>

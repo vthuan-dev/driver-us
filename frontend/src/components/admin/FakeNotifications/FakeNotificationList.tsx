@@ -9,7 +9,7 @@ type Props = {
 };
 
 const regionLabels = {
-  north: 'Northeast',
+  north: 'Northeast & Midwest',
   central: 'South',
   south: 'West'
 };

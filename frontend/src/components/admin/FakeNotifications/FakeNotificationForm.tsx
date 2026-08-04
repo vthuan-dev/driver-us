@@ -24,12 +24,14 @@ type Props = {
   onCancel: () => void;
 };
 
-// US states grouped by region (north=Northeast, central=South, south=West)
+// US states grouped by region (north=Northeast & Midwest, central=South, south=West)
 const provincesByRegion: Record<string, string[]> = {
   north: [
-    'Connecticut', 'Delaware', 'Maine', 'Maryland', 'Massachusetts',
-    'New Hampshire', 'New Jersey', 'New York', 'Pennsylvania', 'Rhode Island',
-    'Vermont'
+    'Connecticut', 'Delaware', 'Illinois', 'Indiana', 'Iowa',
+    'Kansas', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
+    'Minnesota', 'Missouri', 'Nebraska', 'New Hampshire', 'New Jersey',
+    'New York', 'North Dakota', 'Ohio', 'Pennsylvania', 'Rhode Island',
+    'South Dakota', 'Vermont', 'Wisconsin'
   ],
   central: [
     'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky',
@@ -143,9 +145,9 @@ const FakeNotificationForm = ({ template, onSubmit, onCancel }: Props) => {
               onChange={(e) => handleChange('region', e.target.value)}
               required
             >
-              <option value="north">North</option>
-              <option value="central">Central</option>
-              <option value="south">South</option>
+              <option value="north">Northeast & Midwest</option>
+              <option value="central">South</option>
+              <option value="south">West</option>
             </select>
           </div>
 
