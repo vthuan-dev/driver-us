@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { driverAPI, bankConfigAPI } from '../../services/api';
+import { driverAPI } from '../../services/api';
 import AppPricingModal from './AppPricingModal';
 import DownloadAppPage from './DownloadAppPage';
 import DriverIncomePage from './DriverIncomePage';
@@ -55,12 +55,6 @@ const DriverDashboard = ({ user, onLogout, onBack }: DriverDashboardProps) => {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showDownloadPage, setShowDownloadPage] = useState(false);
   const [showIncomePage, setShowIncomePage] = useState(false);
-  const [paypalMe, setPaypalMe] = useState((import.meta as any).env?.VITE_PAYPAL_ME || '');
-  useEffect(() => {
-    bankConfigAPI.getBankConfig().then((res: any) => {
-      if (res.data?.data?.paypalMe) setPaypalMe(res.data.data.paypalMe);
-    }).catch(() => {});
-  }, []);
 
   // Fetch driver stats from API
   useEffect(() => {

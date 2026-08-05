@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { driverAPI, bankConfigAPI } from '../../services/api';
+import { driverAPI } from '../../services/api';
 import './DownloadAppPage.css';
 import paypalQR from '../../assets/paypal-qr.png';
 
@@ -29,12 +29,6 @@ const DownloadAppPage: React.FC<DownloadAppPageProps> = ({ user, plan = '1y', on
   if (plan === 'lifetime') { amount = 80; planLabel = 'Lifetime'; }
 
   const message = `App Download ${user.phone}`;
-  const [paypalMe, setPaypalMe] = React.useState((import.meta as any).env?.VITE_PAYPAL_ME || '');
-  React.useEffect(() => {
-    bankConfigAPI.getBankConfig().then((res: any) => {
-      if (res.data?.data?.paypalMe) setPaypalMe(res.data.data.paypalMe);
-    }).catch(() => {});
-  }, []);
 
   // Step: 'qr' | 'showpass' | 'enterpass'
   const [step, setStep] = useState<'qr' | 'showpass' | 'enterpass'>('qr');

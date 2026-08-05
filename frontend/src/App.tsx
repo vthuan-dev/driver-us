@@ -3,7 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import './App.css'
-import api, { authAPI, driversAPI, requestsAPI, driverAPI, bankConfigAPI } from './services/api'
+import api, { authAPI, driversAPI, requestsAPI, driverAPI } from './services/api'
 import AdminLogin from './components/admin/Login'
 import AdminDashboard from './components/admin/Dashboard'
 import DriverDashboard from './components/driver/DriverDashboard'
@@ -892,12 +892,6 @@ function MainApp() {
   })
   const [showPayment, setShowPayment] = useState(false)
   const [pendingRegister, setPendingRegister] = useState<{ name: string; phone: string; password: string; carType: string; carYear: string } | null>(null)
-  const [paypalMe, setPaypalMe] = useState('');
-  useEffect(() => {
-    bankConfigAPI.getBankConfig().then(res => {
-      if (res.data?.data?.paypalMe) setPaypalMe(res.data.data.paypalMe);
-    }).catch(() => {});
-  }, []);
   const [form, setForm] = useState({
     name: '',
     phone: '',
