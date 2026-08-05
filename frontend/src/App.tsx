@@ -14,6 +14,7 @@ import LoginWelcomeModal from './components/driver/LoginWelcomeModal'
 import DriverIncomePage from './components/driver/DriverIncomePage'
 import { Joyride, STATUS, EVENTS } from 'react-joyride'
 import type { Step } from 'react-joyride'
+import paypalQR from './assets/paypal-qr.png';
 
 // Error Boundary Component
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error?: Error }> {
@@ -2099,14 +2100,14 @@ function MainApp() {
                 <button className="modal__close" onClick={() => setShowPayment(false)} aria-label="Close">×</button>
               </div>
               <div style={{ padding: '8px 16px', overflowY: 'auto', flex: 1, maxHeight: 'calc(90vh - 60px)', WebkitOverflowScrolling: 'touch' }}>
-                <p style={{ marginTop: 0 }}>Scan the QR below with your phone to pay the $15 registration fee via PayPal.</p>
+                <p style={{ marginTop: 0 }}>Scan the QR code below with your phone to pay the registration fee via PayPal.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`https://paypal.me/${paypalMe}/15`)}&bgcolor=ffffff&color=003087&margin=10`}
-                    alt="PayPal QR"
+                    src={paypalQR}
+                    alt="PayPal QR Code"
                     style={{ width: 200, height: 200, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.10)', border: '2px solid #e5e7eb' }}
                   />
-                  <div style={{ fontSize: 12, color: '#555', textAlign: 'center' }}>Or open link: <a href={`https://paypal.me/${paypalMe}/15`} target="_blank" rel="noopener noreferrer" style={{ color: '#0070ba', fontWeight: 700 }}>paypal.me/{paypalMe}/15</a></div>
+                  <div style={{ fontSize: 12, color: '#555', textAlign: 'center' }}>Scan with your phone to pay via PayPal</div>
                 </div>
                 <div style={{ marginTop: 4, fontSize: 12, color: '#888', textAlign: 'center' }}>After payment, click the button below to complete registration.</div>
                 <div style={{ display: 'flex', gap: 12, marginTop: 16, marginBottom: 16 }}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { driverAPI, bankConfigAPI } from '../../services/api';
 import './DownloadAppPage.css';
+import paypalQR from '../../assets/paypal-qr.png';
 
 type User = {
   _id: string;
@@ -34,8 +35,6 @@ const DownloadAppPage: React.FC<DownloadAppPageProps> = ({ user, plan = '1y', on
       if (res.data?.data?.paypalMe) setPaypalMe(res.data.data.paypalMe);
     }).catch(() => {});
   }, []);
-  const paypalUrl = `https://paypal.me/${paypalMe || 'YOURPAYPALID'}/${amount}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(paypalUrl)}&bgcolor=ffffff&color=003087&margin=10`;
 
   // Step: 'qr' | 'showpass' | 'enterpass'
   const [step, setStep] = useState<'qr' | 'showpass' | 'enterpass'>('qr');
@@ -144,7 +143,7 @@ const DownloadAppPage: React.FC<DownloadAppPageProps> = ({ user, plan = '1y', on
               <p className="subtitle-text">Pay via PayPal to download and install the app</p>
               <div className="qr-section">
                 <div className="qr-wrapper">
-                  <img src={qrCodeUrl} alt="PayPal QR" className="qr-image" style={{ borderRadius: 12 }} />
+                  <img src={paypalQR} alt="PayPal QR Code" className="qr-image" style={{ borderRadius: 12 }} />
                 </div>
                 <div className="download-badges">
                   <span className="badge android">Android APK</span>
@@ -157,7 +156,7 @@ const DownloadAppPage: React.FC<DownloadAppPageProps> = ({ user, plan = '1y', on
                   </div>
                 </div>
                 <div style={{ fontSize: 12, color: '#555', textAlign: 'center', marginTop: 8 }}>
-                  Or open: <a href={paypalUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0070ba', fontWeight: 700 }}>paypal.me/{paypalMe}/{amount}</a>
+                  Scan with your phone to pay via PayPal
                 </div>
               </div>
               <button
