@@ -38,7 +38,7 @@ exports.getSettings = async (req, res) => {
 // @access  Private/Admin
 exports.updateSettings = async (req, res) => {
   try {
-    const { minFakeCount, maxFakeCount, minFakeInterval, maxFakeInterval, bankCode, bankName, accountNo, accountName, paypalMe } = req.body;
+    const { minFakeCount, maxFakeCount, minFakeInterval, maxFakeInterval, bankCode, bankName, accountNo, accountName, paypalMe, payoneerEmail } = req.body;
 
     // Validate inputs
     if (minFakeCount > maxFakeCount) {
@@ -67,6 +67,7 @@ exports.updateSettings = async (req, res) => {
     if (accountNo !== undefined) updateData.accountNo = accountNo;
     if (accountName !== undefined) updateData.accountName = accountName;
     if (paypalMe !== undefined) updateData.paypalMe = paypalMe;
+    if (payoneerEmail !== undefined) updateData.payoneerEmail = payoneerEmail;
 
     await settings.update(updateData);
 

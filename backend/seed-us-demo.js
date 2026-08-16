@@ -25,7 +25,8 @@ async function seed() {
     if (!settings) {
       settings = await AppSetting.create({
         minFakeCount: 3, maxFakeCount: 4, minFakeInterval: 15, maxFakeInterval: 30,
-        paypalMe: 'YOURPAYPALID'
+        paypalMe: 'YOURPAYPALID',
+        payoneerEmail: 'khoinehihi06@gmail.com'
       });
       console.log('Created AppSetting');
     }

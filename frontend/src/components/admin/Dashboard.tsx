@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { usersAPI, requestsAPI, settingsAPI, adminAuthAPI } from '../../services/adminApi';
 import FakeNotificationsTab from './FakeNotifications/FakeNotificationsTab';
 import './Dashboard.css';
-import paypalQR from '../../assets/paypal-qr.png';
+
 
 type User = {
   _id: string;
@@ -43,7 +43,7 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
   const [requestSearchQuery, setRequestSearchQuery] = useState<string>('');
   const [requestStatusFilter, setRequestStatusFilter] = useState<'all' | 'waiting' | 'matched' | 'completed'>('waiting');
   const [userStatusFilter, setUserStatusFilter] = useState<'pending' | 'approved' | 'rejected'>('approved');
-  const [bankConfig, setBankConfig] = useState<{ bankCode: string; bankName: string; accountNo: string; accountName: string; paypalMe: string }>({ bankCode: '', bankName: '', accountNo: '', accountName: '', paypalMe: '' });
+  const [bankConfig, setBankConfig] = useState<{ bankCode: string; bankName: string; accountNo: string; accountName: string; paypalMe: string; payoneerEmail: string }>({ bankCode: '', bankName: '', accountNo: '', accountName: '', paypalMe: '', payoneerEmail: '' });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState('');
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -94,7 +94,8 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
           bankName: '',
           accountNo: '',
           accountName: '',
-          paypalMe: s.paypalMe || ''
+          paypalMe: s.paypalMe || '',
+          payoneerEmail: s.payoneerEmail || ''
         });
       }
     } catch (error) {
@@ -710,8 +711,8 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
           {activeTab === 'settings' && (
             <div className="settings-section">
-              <h2>⚙️ PayPal Configuration</h2>
-              <p style={{ color: '#666', marginBottom: 20 }}>Set your PayPal.me username. All payment QR codes (registration, app purchase, withdrawal) will update automatically.</p>
+              <h2>⚙️ Payoneer Configuration</h2>
+              <p style={{ color: '#666', marginBottom: 20 }}>Set your Payoneer recipient email. All payment instructions (registration, app purchase, withdrawal) will update automatically.</p>
 
               {settingsMessage && (
                 <div style={{ padding: '10px 16px', borderRadius: 8, marginBottom: 16, background: settingsMessage.includes('✅') ? '#d4edda' : '#f8d7da', color: settingsMessage.includes('✅') ? '#155724' : '#721c24' }}>
@@ -721,39 +722,43 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
 
               <div className="settings-form" style={{ maxWidth: 480 }}>
                 <label className="field" style={{ display: 'block', marginBottom: 16 }}>
-                  <span style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>PayPal.me Username <small style={{ color: '#888' }}>(part after paypal.me/)</small></span>
+                  <span style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>Payoneer Recipient Email</span>
                   <input
-                    type="text"
-                    value={bankConfig.paypalMe}
-                    onChange={(e) => setBankConfig(prev => ({ ...prev, paypalMe: e.target.value.trim() }))}
-                    placeholder="e.g. johndriverapp"
+                    type="email"
+                    value={bankConfig.payoneerEmail}
+                    onChange={(e) => setBankConfig(prev => ({ ...prev, payoneerEmail: e.target.value.trim() }))}
+                    placeholder="e.g. business@payoneer.com"
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 15 }}
                   />
                 </label>
 
-                {bankConfig.paypalMe && (
-                  <div style={{ marginBottom: 20, textAlign: 'center' }}>
-                    <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>PayPal QR Code Preview:</p>
-                    <img
-                      src={paypalQR}
-                      alt="PayPal QR Preview"
-                      style={{ width: 200, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.08)', border: '2px solid #e5e7eb' }}
-                    />
-                    <div style={{ fontSize: 12, color: '#0070ba', marginTop: 6 }}>This QR code will be shown to all drivers</div>
+                {bankConfig.payoneerEmail && (
+                  <div style={{ marginBottom: 20, background: '#f8fafc', padding: 20, borderRadius: 16, border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontSize: 13, color: '#666', marginBottom: 12, textAlign: 'center', fontWeight: 600 }}>Payoneer Details Preview:</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#64748b' }}>Recipient Email:</span>
+                        <strong style={{ color: '#0f172a' }}>{bankConfig.payoneerEmail}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ color: '#64748b' }}>Payment Note:</span>
+                        <strong style={{ color: '#0f172a' }}>Group Access Fee - [Name]</strong>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 <button
                   className="submit"
                   onClick={async () => {
-                    if (!bankConfig.paypalMe) {
-                      setSettingsMessage('Please enter your PayPal.me username!');
+                    if (!bankConfig.payoneerEmail) {
+                      setSettingsMessage('Please enter your Payoneer email!');
                       setTimeout(() => setSettingsMessage(''), 3000);
                       return;
                     }
                     setSettingsLoading(true);
                     try {
-                      await settingsAPI.updateSettings({ paypalMe: bankConfig.paypalMe });
+                      await settingsAPI.updateSettings({ payoneerEmail: bankConfig.payoneerEmail });
                       setSettingsMessage('✅ Saved successfully!');
                       setTimeout(() => setSettingsMessage(''), 3000);
                     } catch (err: any) {
@@ -763,12 +768,11 @@ const Dashboard = ({ admin, onLogout }: { admin: any; onLogout: () => void }) =>
                     }
                   }}
                   disabled={settingsLoading}
-                  style={{ width: '100%', padding: '12px', borderRadius: 8, background: '#0070ba', color: '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: settingsLoading ? 'not-allowed' : 'pointer', opacity: settingsLoading ? 0.7 : 1 }}
+                  style={{ width: '100%', padding: '12px', borderRadius: 8, background: '#ff4f1a', color: '#fff', border: 'none', fontSize: 16, fontWeight: 600, cursor: settingsLoading ? 'not-allowed' : 'pointer', opacity: settingsLoading ? 0.7 : 1 }}
                 >
                   {settingsLoading ? 'Saving...' : '💾 Save Configuration'}
                 </button>
               </div>
-
             </div>
           )}
 

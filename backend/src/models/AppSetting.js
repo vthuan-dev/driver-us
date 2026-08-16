@@ -44,6 +44,10 @@ module.exports = (sequelize, DataTypes) => {
     paypalMe: {
       type: DataTypes.STRING(100),
       allowNull: true
+    },
+    payoneerEmail: {
+      type: DataTypes.STRING(150),
+      allowNull: true
     }
   }, {
     tableName: 'app_settings',

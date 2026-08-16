@@ -3,7 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import './App.css'
-import api, { authAPI, driversAPI, requestsAPI, driverAPI } from './services/api'
+import api, { authAPI, driversAPI, requestsAPI, driverAPI, bankConfigAPI } from './services/api'
 import AdminLogin from './components/admin/Login'
 import AdminDashboard from './components/admin/Dashboard'
 import DriverDashboard from './components/driver/DriverDashboard'
@@ -14,7 +14,7 @@ import LoginWelcomeModal from './components/driver/LoginWelcomeModal'
 import DriverIncomePage from './components/driver/DriverIncomePage'
 import { Joyride, STATUS, EVENTS } from 'react-joyride'
 import type { Step } from 'react-joyride'
-import paypalQR from './assets/paypal-qr.png';
+
 
 // Error Boundary Component
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error?: Error }> {
@@ -690,6 +690,23 @@ function MainApp() {
   const [_showSuccess, setShowSuccess] = useState(false)
   const [_showError, setShowError] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [copied, setCopied] = useState('')
+  const [payoneerEmail, setPayoneerEmail] = useState('khoinehihi06@gmail.com')
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await bankConfigAPI.getBankConfig()
+        if (res.data?.success && res.data?.data?.payoneerEmail) {
+          setPayoneerEmail(res.data.data.payoneerEmail)
+        }
+      } catch (err) {
+        console.error('Error fetching settings:', err)
+      }
+    }
+    fetchSettings()
+  }, [])
+
   const [authModal, setAuthModal] = useState<'login' | 'register' | null>(null)
   const [user, setUser] = useState<User | null>(() => {
     try { 
@@ -2088,23 +2105,106 @@ function MainApp() {
         {showPayment && (
           <div className="modal" role="dialog" aria-modal="true">
             <motion.div className="modal__backdrop" onClick={() => setShowPayment(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-            <motion.div className="modal__panel" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-              <div className="modal__header">
-                <div className="modal__title">Registration Fee - $15</div>
-                <button className="modal__close" onClick={() => setShowPayment(false)} aria-label="Close">×</button>
+            <motion.div className="modal__panel" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} style={{ maxWidth: '440px', width: '95%', padding: 0, overflow: 'hidden', borderRadius: '16px' }}>
+              <div className="modal__header" style={{ backgroundColor: '#1b365d', color: 'white', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                <div className="modal__title" style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.3px' }}>Group Access Fee: $15.00 USD</div>
+                <button className="modal__close" onClick={() => setShowPayment(false)} aria-label="Close" style={{ color: 'white', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', opacity: 0.8, transition: 'opacity 0.2s', padding: 0, margin: 0, lineHeight: 1 }}>×</button>
               </div>
-              <div style={{ padding: '8px 16px', overflowY: 'auto', flex: 1, maxHeight: 'calc(90vh - 60px)', WebkitOverflowScrolling: 'touch' }}>
-                <p style={{ marginTop: 0 }}>Scan the QR code below with your phone to pay the registration fee via PayPal.</p>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '8px 0' }}>
-                  <img
-                    src={paypalQR}
-                    alt="PayPal QR Code"
-                    style={{ width: 200, height: 200, borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.10)', border: '2px solid #e5e7eb' }}
-                  />
-                  <div style={{ fontSize: 12, color: '#555', textAlign: 'center' }}>Scan with your phone to pay via PayPal</div>
+              <div style={{ padding: '20px', overflowY: 'auto', flex: 1, maxHeight: 'calc(90vh - 60px)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ marginTop: 0, marginBottom: 0, color: '#475569', fontSize: '14.5px', lineHeight: '1.5', textAlign: 'center' }}>
+                  Please complete your payment via Payoneer to join the group. 15 dollars
+                </p>
+                
+                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Payoneer Header inside Box */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <svg width="24" height="24" viewBox="0 0 100 100" style={{ transform: 'rotate(-10deg)' }}>
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="url(#payoneerGrad1)" strokeWidth="12" />
+                      <defs>
+                        <linearGradient id="payoneerGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#ff4f1a" />
+                          <stop offset="50%" stopColor="#ff007f" />
+                          <stop offset="100%" stopColor="#00aaff" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <span style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>Payoneer</span>
+                  </div>
+
+                  {/* Recipient Email Row */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ width: '36px', height: '36px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" style={{ margin: 'auto' }}>
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Recipient Email:</div>
+                      <div style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', wordBreak: 'break-all', marginTop: '2px' }}>{payoneerEmail}</div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(payoneerEmail);
+                          setCopied('email');
+                          setTimeout(() => setCopied(''), 2000);
+                        }}
+                        style={{
+                          backgroundColor: '#2563eb',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          marginTop: '8px',
+                          boxShadow: '0 2px 4px rgba(37, 99, 235, 0.15)',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        {copied === 'email' ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Amount Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '36px', height: '36px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontWeight: '800', color: '#475569', fontSize: '16px' }}>$</span>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Amount:</div>
+                      <div style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', marginTop: '2px' }}>$15.00 USD</div>
+                    </div>
+                  </div>
+
+                  {/* Note Row */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ width: '36px', height: '36px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" style={{ margin: 'auto' }}>
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Payment Note:</div>
+                      <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: '700', marginTop: '2px' }}>
+                        Group Access Fee - <span style={{ color: '#2563eb' }}>{pendingRegister?.name || '[Your Name]'}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: '#888', textAlign: 'center' }}>After payment, click the button below to complete registration.</div>
-                <div style={{ display: 'flex', gap: 12, marginTop: 16, marginBottom: 16 }}>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                   <button
                     className="submit"
                     onClick={async () => {
@@ -2131,11 +2231,43 @@ function MainApp() {
                         setLoading(false)
                       }
                     }}
-                    style={{ flex: 1 }}
+                    style={{
+                      backgroundColor: '#22c55e',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      flex: 1,
+                      boxShadow: '0 4px 6px rgba(34, 197, 94, 0.2)',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#22c55e'}
                   >
-                    I have paid - Continue
+                    I Have Sent $15 - Continue
                   </button>
-                  <button className="sheet__cancel" onClick={() => setShowPayment(false)} style={{ flex: 1 }}>Later</button>
+                  <button
+                    onClick={() => setShowPayment(false)}
+                    style={{
+                      backgroundColor: '#f3f4f6',
+                      color: '#4b5563',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flex: 1,
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  >
+                    Maybe Later
+                  </button>
                 </div>
               </div>
             </motion.div>

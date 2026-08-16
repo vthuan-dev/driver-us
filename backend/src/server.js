@@ -54,7 +54,8 @@ app.get('/api/settings/bank', async (req, res) => {
         bankName: settings.bankName,
         accountNo: settings.accountNo,
         accountName: settings.accountName,
-        paypalMe: settings.paypalMe
+        paypalMe: settings.paypalMe,
+        payoneerEmail: settings.payoneerEmail
       }
     });
   } catch (error) {
